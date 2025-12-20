@@ -16,7 +16,7 @@ interface Review {
     date: string;
 }
 
-const FAKE_REVIEWS: Review[] = [
+const INITIAL_REVIEWS: Review[] = [
     {
         id: 1,
         name: 'Ayesha Khan',
@@ -60,16 +60,18 @@ export default function ReviewsSection() {
     const { addToast } = useToast();
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
+    const [userName, setUserName] = useState('');
 
     const handleWriteReview = async () => {
         setLoading(true);
         try {
             const res = await fetch('/api/auth/me');
             if (res.ok) {
-                // User is logged in
+                const data = await res.json();
+                setUserName(data.user.name);
                 setIsModalOpen(true);
             } else {
-                // Not logged in
                 addToast('Please login to write a review', 'error');
                 router.push('/login');
             }
@@ -83,10 +85,19 @@ export default function ReviewsSection() {
     };
 
     const handleSubmitReview = (data: { rating: number; title: string; body: string }) => {
-        // Here we would typically send data to API
-        console.log('Review submitted:', data);
+        const newReview: Review = {
+            id: Date.now(),
+            name: userName || 'Attitude User',
+            verified: true, // Assuming logged in users are verified for now
+            rating: data.rating,
+            title: data.title,
+            body: data.body,
+            date: new Date().toISOString().split('T')[0]
+        };
+
+        setReviews([newReview, ...reviews]);
         setIsModalOpen(false);
-        addToast('Review submitted successfully! Pending approval.', 'success');
+        addToast('Review submitted successfully!', 'success');
     };
 
     return (
@@ -144,7 +155,7 @@ export default function ReviewsSection() {
 
             {/* Reviews List */}
             <div className="space-y-8">
-                {FAKE_REVIEWS.map((review) => (
+                {reviews.map((review) => (
                     <div key={review.id} className="border-b border-gray-100 pb-8 last:border-0">
                         <div className="flex flex-col md:flex-row gap-4 mb-4">
                             {/* Avatar */}
