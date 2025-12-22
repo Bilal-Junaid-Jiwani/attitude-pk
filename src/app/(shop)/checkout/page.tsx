@@ -5,48 +5,8 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, CreditCard } from 'lucide-react';
+import { Loader2, CreditCard, Lock } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
-
-// Payment Form Component
-const StripePaymentForm = ({ clientSecret, onSuccess }: { clientSecret: string, onSuccess: (paymentResult: any) => void }) => {
-    const stripe = useStripe();
-    const elements = useElements();
-    const { addToast } = useToast();
-    const [loading, setLoading] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!stripe || !elements) return;
-
-        setLoading(true);
-
-        const { error, paymentIntent } = await stripe.confirmPayment({
-            elements,
-            redirect: 'if_required',
-        });
-
-        setLoading(false);
-
-        if (error) {
-            addToast(error.message || 'Payment failed', 'error');
-        } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-            onSuccess(paymentIntent);
-        }
-    };
-
-    return (
-        <form id="stripe-form" onSubmit={handleSubmit} className="mt-4">
-            <PaymentElement />
-        </form>
-    );
-};
 
 export default function CheckoutPage() {
     const { cart, cartTotal, clearCart } = useCart();
@@ -63,8 +23,8 @@ export default function CheckoutPage() {
         postalCode: '',
     });
 
-    const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Card'>('COD');
-    const [clientSecret, setClientSecret] = useState('');
+    // Payment Method: COD or Safepay (Card/Bank)
+    const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Safepay'>('COD');
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
@@ -95,27 +55,13 @@ export default function CheckoutPage() {
         fetchUser();
     }, []);
 
-    // Create Payment Intent when Card is selected
-    useEffect(() => {
-        if (paymentMethod === 'Card' && !clientSecret && cartTotal > 0) {
-            fetch('/api/create-payment-intent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: cartTotal, currency: 'pkr' }),
-            })
-                .then((res) => res.json())
-                .then((data) => setClientSecret(data.clientSecret));
-        }
-    }, [paymentMethod, cartTotal, clientSecret]);
-
     // Handle Input Change
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Main Order Placement Logic
-    const placeOrder = async (paymentResult: any = {}) => {
-        setLoading(true);
+    // Place Order for COD
+    const placeCODOrder = async () => {
         try {
             let userId = null;
             try {
@@ -138,12 +84,7 @@ export default function CheckoutPage() {
                 })),
                 totalAmount: cartTotal,
                 shippingAddress: formData,
-                paymentMethod: paymentMethod,
-                paymentResult: paymentMethod === 'Card' ? {
-                    id: paymentResult.id,
-                    status: paymentResult.status,
-                    email_address: paymentResult.receipt_email
-                } : undefined
+                paymentMethod: 'COD'
             };
 
             const res = await fetch('/api/orders', {
@@ -167,27 +108,89 @@ export default function CheckoutPage() {
         }
     };
 
-    // Handle Submit
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Initiate Safepay Payment
+    const handleSafepay = async () => {
+        try {
+            // 0. Create 'Pending' Order in DB first
+            let userId = null;
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    userId = data.user._id;
+                }
+            } catch { }
 
-        if (paymentMethod === 'Card') {
-            // Note: We need to ensure shipping info is valid first.
-            const form = document.getElementById('checkout-form') as HTMLFormElement;
-            if (!form.checkValidity()) {
-                form.reportValidity();
+            const orderData = {
+                user: userId,
+                items: cart.map(item => ({
+                    product_id: item._id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    subCategory: item.subCategory,
+                    imageUrl: item.imageUrl
+                })),
+                totalAmount: cartTotal,
+                shippingAddress: formData,
+                paymentMethod: 'Safepay',
+                status: 'pending' // Initial status
+            };
+
+            const orderRes = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+
+            const orderJson = await orderRes.json();
+
+            if (!orderRes.ok) {
+                addToast(orderJson.message || 'Failed to create order', 'error');
+                setLoading(false);
                 return;
             }
 
-            // If valid, submit stripe form
-            const stripeForm = document.getElementById('stripe-form');
-            if (stripeForm) {
-                stripeForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-            }
+            const orderId = orderJson.orderId;
 
+            // 1. Initialize Safepay Payment Session
+            const res = await fetch('/api/safepay/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: cartTotal,
+                    currency: 'PKR',
+                    orderId: orderId // Pass orderId so backend can append to redirect
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.url) {
+                // 2. Redirect User to Hosted Checkout
+                window.location.href = data.url;
+            } else {
+                addToast(data.error || 'Failed to initialize payment', 'error');
+                setLoading(false);
+            }
+        } catch (error) {
+            console.error(error);
+            addToast('Connection error. Please try again.', 'error');
+            setLoading(false);
+        }
+    };
+
+    // Handle Submit
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        // Basic validation already handled by 'required' attributes on inputs
+
+        if (paymentMethod === 'Safepay') {
+            await handleSafepay();
         } else {
-            // COD
-            placeOrder();
+            await placeCODOrder();
         }
     };
 
@@ -323,32 +326,25 @@ export default function CheckoutPage() {
                                 </label>
 
                                 <label
-                                    className={`flex flex-col p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'Card' ? 'border-[#1c524f] bg-white ring-1 ring-[#1c524f]' : 'border-gray-200 hover:border-[#1c524f]/50'}`}
-                                    onClick={() => setPaymentMethod('Card')}
+                                    className={`flex flex-col p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'Safepay' ? 'border-[#1c524f] bg-white ring-1 ring-[#1c524f]' : 'border-gray-200 hover:border-[#1c524f]/50'}`}
+                                    onClick={() => setPaymentMethod('Safepay')}
                                 >
-                                    <div className="flex items-center justify-between w-full mb-2">
+                                    <div className="flex items-center justify-between w-full">
                                         <span className="flex items-center gap-3 font-bold text-gray-900">
-                                            <span className={`w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center ${paymentMethod === 'Card' ? 'border-[#1c524f]' : ''}`}>
-                                                {paymentMethod === 'Card' && <div className="w-3 h-3 bg-[#1c524f] rounded-full" />}
+                                            <span className={`w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center ${paymentMethod === 'Safepay' ? 'border-[#1c524f]' : ''}`}>
+                                                {paymentMethod === 'Safepay' && <div className="w-3 h-3 bg-[#1c524f] rounded-full" />}
                                             </span>
-                                            Credit / Debit Card
+                                            Pay with Safepay
                                         </span>
-                                        <CreditCard size={20} className="text-gray-500" />
-                                    </div>
-
-                                    {paymentMethod === 'Card' && (
-                                        <div className="pl-8 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            {clientSecret ? (
-                                                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                                                    <StripePaymentForm clientSecret={clientSecret} onSuccess={placeOrder} />
-                                                </Elements>
-                                            ) : (
-                                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Initializing secure payments...
-                                                </div>
-                                            )}
+                                        <div className="flex items-center gap-2">
+                                            <Lock size={16} className="text-[#1c524f]" />
+                                            <span className="text-xs text-gray-500 font-medium">Secured by Safepay</span>
                                         </div>
+                                    </div>
+                                    {paymentMethod === 'Safepay' && (
+                                        <p className="pl-8 pt-2 text-sm text-gray-500">
+                                            You will be redirected to Safepay's secure payment page to complete your purchase using your Credit/Debit Card or Bank Account.
+                                        </p>
                                     )}
                                 </label>
                             </div>
@@ -395,16 +391,12 @@ export default function CheckoutPage() {
 
                             <button
                                 type="submit"
-                                // If card is selected, we want the form submit to be handled by our special handler
-                                // If COD, standard handler.
-                                // We can just use onClick on this button to trigger the unified handler in JS 
-                                // instead of creating a complex form association.
-                                onClick={handleSubmit}
-                                disabled={loading || (paymentMethod === 'Card' && !clientSecret)}
+                                form="checkout-form"
+                                disabled={loading}
                                 className="w-full mt-8 bg-[#1c524f] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#153e3c] transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {loading && <Loader2 className="animate-spin" />}
-                                {loading ? 'Processing...' : (paymentMethod === 'Card' ? 'Pay Now' : 'Place Order')}
+                                {loading ? 'Processing...' : (paymentMethod === 'Safepay' ? 'Proceed to Pay' : 'Place Order')}
                             </button>
 
                             <p className="text-xs text-center text-gray-400 mt-4">
