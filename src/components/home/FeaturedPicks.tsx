@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Star } from 'lucide-react';
 import Link from 'next/link';
+import CoolLoader from '../ui/CoolLoader';
+import { useCart } from '@/context/CartContext';
 
 interface Product {
     _id: string;
@@ -18,6 +20,7 @@ interface Product {
 const FeaturedPicks = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [activeTab, setActiveTab] = useState<string>('');
+    const { addToCart } = useCart();
     const [tabs, setTabs] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -78,7 +81,7 @@ const FeaturedPicks = () => {
         return tabName === activeTab;
     });
 
-    if (loading) return null; // Or a loading spinner
+    if (loading) return <CoolLoader />;
     if (products.length === 0) return null;
 
     return (
@@ -149,7 +152,17 @@ const FeaturedPicks = () => {
                                 </div>
 
                                 {/* Button */}
-                                <button className="w-full bg-[#1c524f] text-white py-3 px-4 rounded-sm font-bold text-sm tracking-wide hover:bg-[#153e3c] transition-all mt-auto shadow-sm hover:shadow-md flex justify-center items-center gap-2">
+                                <button
+                                    onClick={() => addToCart({
+                                        _id: product._id,
+                                        name: product.name,
+                                        price: product.price,
+                                        imageUrl: product.imageUrl,
+                                        quantity: 1,
+                                        subCategory: product.subCategory
+                                    })}
+                                    className="w-full bg-[#1c524f] text-white py-3 px-4 rounded-sm font-bold text-sm tracking-wide hover:bg-[#153e3c] transition-all mt-auto shadow-sm hover:shadow-md flex justify-center items-center gap-2"
+                                >
                                     <span>Add</span>
                                     <span>Rs. {product.price.toLocaleString()}</span>
                                 </button>

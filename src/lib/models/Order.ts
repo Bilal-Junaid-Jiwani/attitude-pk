@@ -1,38 +1,45 @@
 import mongoose from 'mongoose';
 
-const OrderItemSchema = new mongoose.Schema({
-    product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true,
-    },
-    name: { type: String, required: true },
-    price: { type: Number, required: true }, // Screenshot price at time of purchase
-    quantity: { type: Number, required: true, min: 1 },
-    image: { type: String, required: true },
-});
+
 
 const OrderSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: false, // Allow guest checkout
     },
-    items: [OrderItemSchema],
+    items: [
+        {
+            product_id: { type: String, required: true },
+            name: { type: String, required: true },
+            price: { type: Number, required: true },
+            quantity: { type: Number, required: true, min: 1 },
+            subCategory: { type: String },
+            imageUrl: { type: String, required: true },
+        }
+    ],
     totalAmount: {
         type: Number,
         required: true,
     },
-    status: {
-        type: String,
-        enum: ['Pending', 'Processing', 'On the Way', 'Delivered', 'Cancelled'],
-        default: 'Pending',
-    },
     shippingAddress: {
+        fullName: { type: String, required: true },
+        email: { type: String, required: true },
+        phone: { type: String, required: true },
         address: { type: String, required: true },
         city: { type: String, required: true },
-        postalCode: { type: String, required: true },
-        country: { type: String, required: true },
+        postalCode: { type: String, required: false },
+    },
+    paymentMethod: {
+        type: String,
+        default: 'COD',
+        enum: ['COD', 'Card'],
+    },
+    status: {
+        type: String,
+        type: String,
+        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+        default: 'Pending',
     },
     paymentResult: {
         id: String,
@@ -40,10 +47,6 @@ const OrderSchema = new mongoose.Schema({
         update_time: String,
         email_address: String,
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-});
+}, { timestamps: true });
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema);

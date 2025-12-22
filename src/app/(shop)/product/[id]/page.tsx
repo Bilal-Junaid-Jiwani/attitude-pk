@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Minus, Plus, ChevronDown, Check } from 'lucide-react';
 import ReviewsSection from '@/components/shop/ReviewsSection';
+import { useCart } from '@/context/CartContext';
 
 interface Product {
     _id: string;
@@ -20,7 +21,26 @@ interface Product {
     ingredients?: string;
     howToUse?: string;
     stock: number;
+    subCategory?: string;
 }
+
+// Accordion Component Helper
+const AccordionItem = ({ title, isOpen, onClick, children }: { title: string, isOpen: boolean, onClick: () => void, children: React.ReactNode }) => (
+    <div className="border border-[#1c524f] rounded-lg mb-4 overflow-hidden">
+        <button
+            onClick={onClick}
+            className="w-full px-5 py-4 flex items-center justify-between text-left font-bold text-[#1c524f] bg-white hover:bg-gray-50 transition-colors"
+        >
+            <span className="text-lg">{title}</span>
+            {isOpen ? <Minus size={20} /> : <Plus size={20} />}
+        </button>
+        <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="px-5 pb-5 text-gray-600 leading-relaxed text-sm">
+                {children}
+            </div>
+        </div>
+    </div>
+);
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
     const [product, setProduct] = useState<Product | null>(null);
@@ -30,6 +50,19 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [openAccordion, setOpenAccordion] = useState<string | null>('description');
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [purchaseType, setPurchaseType] = useState<'onetime' | 'subscribe'>('onetime');
+    const { addToCart } = useCart();
+
+    const handleAddToCart = () => {
+        if (!product) return;
+        addToCart({
+            _id: product._id,
+            name: product.name,
+            price: currentPrice,
+            imageUrl: activeImage,
+            quantity: quantity,
+            subCategory: product.subCategory
+        });
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -87,8 +120,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     <span className="text-gray-900 font-medium">{product.name}</span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-20">
-                    {/* LEFT COLUMN: Gallery */}
+                {/* LEFT COLUMN: Gallery */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     <div className="lg:col-span-7">
                         <div className="sticky top-24 flex flex-col md:flex-row gap-4">
                             {/* Thumbnails (Vertical on Desktop) */}
@@ -106,12 +139,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                             {/* Main Image */}
                             <div className="flex-1 relative">
-                                {/* Removed fixed aspect ratio and background to fit image size naturally. 
-                                    Using a square container or auto-height if possible. 
-                                    Since we use 'fill', we need a relative container with a height or aspect ratio. 
-                                    Switching to aspect-square helps reduce vertical whitespace for wide/square images on desktop,
-                                    but for tall bottles, 'object-contain' is still safest. 
-                                    Removing bg-gray-50 solves the "visible empty space" issue. */}
                                 <div className="relative w-full aspect-square md:aspect-[4/5] lg:aspect-square bg-transparent rounded-lg overflow-hidden">
                                     <Image
                                         src={activeImage}
@@ -241,13 +268,16 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     <Plus size={16} />
                                 </button>
                             </div>
-                            <button className="flex-1 bg-[#1c524f] text-white font-bold rounded-md hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={handleAddToCart}
+                                className="flex-1 bg-[#1c524f] text-white font-bold rounded-md hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2"
+                            >
                                 Add to cart
                             </button>
                         </div>
 
                         {/* Accordions (Boxed Style) */}
-                        <div className="mt-8 flex flex-col gap-[-1px]"> {/* gap-[-1px] to collapse borders if we wanted, but let's use standard spacing or just margin-top */}
+                        <div className="mt-8 flex flex-col gap-[-1px]">
                             {/* Description */}
                             <AccordionItem
                                 title="Description"
@@ -321,7 +351,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                         </div>
                                         <span className="text-xs text-gray-500">(50)</span>
                                     </div>
-                                    <button className="w-full bg-[#1c524f] text-white font-bold py-2.5 rounded-md hover:bg-[#153e3c] transition-colors text-sm">
+                                    <button
+                                        onClick={() => addToCart({
+                                            _id: related._id,
+                                            name: related.name,
+                                            price: related.price,
+                                            imageUrl: related.imageUrl,
+                                            quantity: 1,
+                                            subCategory: related.subCategory
+                                        })}
+                                        className="w-full bg-[#1c524f] text-white font-bold py-2.5 rounded-md hover:bg-[#153e3c] transition-colors text-sm"
+                                    >
                                         Add Rs. {related.price.toLocaleString()}
                                     </button>
                                 </div>
@@ -337,21 +377,3 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         </div>
     );
 }
-
-// Accordion Component Helper (Boex Style with Borders)
-const AccordionItem = ({ title, isOpen, onClick, children }: { title: string, isOpen: boolean, onClick: () => void, children: React.ReactNode }) => (
-    <div className="border border-[#1c524f] rounded-lg mb-4 overflow-hidden">
-        <button
-            onClick={onClick}
-            className="w-full px-5 py-4 flex items-center justify-between text-left font-bold text-[#1c524f] bg-white hover:bg-gray-50 transition-colors"
-        >
-            <span className="text-lg">{title}</span>
-            {isOpen ? <Minus size={20} /> : <Plus size={20} />}
-        </button>
-        <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="px-5 pb-5 text-gray-600 leading-relaxed text-sm">
-                {children}
-            </div>
-        </div>
-    </div>
-);

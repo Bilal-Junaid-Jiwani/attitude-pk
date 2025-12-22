@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Search, ShoppingBag, User, Menu, X, ChevronDown } from 'lucide-react';
 import { NAV_LINKS } from '@/lib/constants';
+import { useCart } from '@/context/CartContext';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [mobileSubMenu, setMobileSubMenu] = useState<string | null>(null);
+    const { cartCount } = useCart();
 
     const toggleMenu = () => setIsOpen(!isOpen);
     const toggleMobileSubMenu = (label: string) => {
@@ -84,7 +86,11 @@ const Navbar = () => {
                         </Link>
                         <Link href="/cart" className="text-gray-600 hover:text-primary transition-colors p-2 relative">
                             <ShoppingBag size={22} className="stroke-[1.5]" />
-                            <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-primary rounded-full border-2 border-white"></span>
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Link>
                     </div>
                 </div>

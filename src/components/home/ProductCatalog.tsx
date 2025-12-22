@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
+import CoolLoader from '../ui/CoolLoader';
+import { useCart } from '@/context/CartContext';
 
 interface Product {
     _id: string;
@@ -24,6 +26,7 @@ interface GroupedProducts {
 export default function ProductCatalog() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const { addToCart } = useCart();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -58,7 +61,7 @@ export default function ProductCatalog() {
     });
 
     if (loading) {
-        return <div className="py-20 text-center text-gray-500">Loading full catalog...</div>;
+        return <CoolLoader />;
     }
 
     if (products.length === 0) {
@@ -68,10 +71,7 @@ export default function ProductCatalog() {
     return (
         <section className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-[#F5F5F7]">
             <div className="max-w-7xl mx-auto space-y-16">
-                <div className="text-center mb-12">
-                    <h2 className="text-4xl font-heading font-bold text-[#1c524f]">Our Complete Collection</h2>
-                    <p className="text-gray-500 mt-2">Explore all our products organized by category</p>
-                </div>
+
 
                 {Object.keys(groupedProducts).map((categoryName) => (
                     <div key={categoryName} className="space-y-8 animate-in fade-in duration-700">
@@ -125,7 +125,17 @@ export default function ProductCatalog() {
                                                 </div>
 
                                                 <div className="w-full mt-auto">
-                                                    <button className="w-full bg-[#1c524f] text-white py-3 px-4 rounded-sm font-bold text-sm tracking-wide hover:bg-[#153e3c] transition-all shadow-sm hover:shadow-md flex justify-center items-center gap-2">
+                                                    <button
+                                                        onClick={() => addToCart({
+                                                            _id: product._id,
+                                                            name: product.name,
+                                                            price: product.price,
+                                                            imageUrl: product.imageUrl,
+                                                            quantity: 1,
+                                                            subCategory: product.subCategory
+                                                        })}
+                                                        className="w-full bg-[#1c524f] text-white py-3 px-4 rounded-sm font-bold text-sm tracking-wide hover:bg-[#153e3c] transition-all shadow-sm hover:shadow-md flex justify-center items-center gap-2"
+                                                    >
                                                         <span>Add</span>
                                                         <span>Rs. {product.price.toLocaleString()}</span>
                                                     </button>

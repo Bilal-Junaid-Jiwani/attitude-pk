@@ -9,7 +9,7 @@ import CategorySlider from '@/components/home/CategorySlider';
 import SelfCareBanner from '@/components/home/SelfCareBanner';
 import CustomerReviews from '@/components/home/CustomerReviews';
 import FeaturesBanner from '@/components/home/FeaturesBanner';
-import ProductCatalog from '@/components/home/ProductCatalog';
+// import ProductCatalog from '@/components/home/ProductCatalog';
 
 const HeroSection = () => (
   <section className="w-full">
@@ -104,8 +104,8 @@ export default function Home() {
       {/* Self-Care Banner */}
       <SelfCareBanner />
 
-      {/* Full Product Catalog - Dynamic */}
-      <ProductCatalog />
+      {/* Full Product Catalog - Removed per user request */}
+      {/* <ProductCatalog /> */}
 
       {/* Customer Reviews Section */}
       <CustomerReviews />

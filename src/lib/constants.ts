@@ -1,8 +1,8 @@
 export const NAV_LINKS = [
-  { 
-    label: 'TRENDING', 
+  {
+    label: 'TRENDING',
     href: '/collections/trending',
-    isDropdown: false 
+    isDropdown: false
   },
   {
     label: 'BABY',
@@ -23,9 +23,9 @@ export const NAV_LINKS = [
       { label: 'Conditioner', href: '/collections/kids/conditioner' },
     ]
   },
-  { 
-    label: 'HOME', 
-    href: '/collections/home',
-    isDropdown: false 
+  {
+    label: 'HOME',
+    href: '/',
+    isDropdown: false
   }
 ];
