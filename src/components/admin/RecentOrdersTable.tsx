@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Order {
     _id: string;
@@ -13,18 +14,30 @@ interface Order {
 const RecentOrdersTable = () => {
     const [orders, setOrders] = useState<Order[]>([]);
 
+    const router = useRouter();
+
     useEffect(() => {
         fetch('/api/admin/orders')
             .then(async (res) => {
+                if (res.status === 401) {
+                    router.push('/login');
+                    return [];
+                }
                 if (!res.ok) {
                     const text = await res.text();
                     throw new Error(`API Error: ${res.status} - ${text}`);
                 }
                 return res.json();
             })
-            .then(data => setOrders(Array.isArray(data) ? data : []))
+            // Handle both array (API V1) and object (API V2) responses if needed, defaulting to empty array if redirecting
+            .then(data => {
+                if (!data) return; // redirected
+                // The new API returns { orders: [], stats: {} }, while older might return []
+                const ordersList = Array.isArray(data) ? data : (data.orders || []);
+                setOrders(ordersList);
+            })
             .catch(err => console.error('Failed to fetch orders:', err));
-    }, []);
+    }, [router]);
 
     const getStatusColor = (status: string) => {
         switch (status) {

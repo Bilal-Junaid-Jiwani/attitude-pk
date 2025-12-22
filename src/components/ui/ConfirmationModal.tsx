@@ -49,8 +49,8 @@ export function ConfirmationModal({
                     <div className="p-6">
                         <div className="flex items-center gap-4 mb-4">
                             <div className={`p-3 rounded-full ${variant === 'danger' ? 'bg-red-50 text-red-600' :
-                                    variant === 'warning' ? 'bg-amber-50 text-amber-600' :
-                                        'bg-blue-50 text-blue-600'
+                                variant === 'warning' ? 'bg-amber-50 text-amber-600' :
+                                    'bg-blue-50 text-blue-600'
                                 }`}>
                                 <AlertTriangle size={24} />
                             </div>
@@ -71,8 +71,8 @@ export function ConfirmationModal({
                             <button
                                 onClick={onConfirm}
                                 className={`px-5 py-2.5 rounded-lg text-white font-medium shadow-sm transition-colors ${variant === 'danger' ? 'bg-red-600 hover:bg-red-700' :
-                                        variant === 'warning' ? 'bg-amber-600 hover:bg-amber-700' :
-                                            'bg-blue-600 hover:bg-blue-700'
+                                    variant === 'warning' ? 'bg-amber-600 hover:bg-amber-700' :
+                                        'bg-[#1c524f] hover:bg-[#15403d]'
                                     }`}
                             >
                                 {confirmText}

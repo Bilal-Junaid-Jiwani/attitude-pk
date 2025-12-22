@@ -21,6 +21,10 @@ const ProductSchema = new mongoose.Schema({
         required: [true, 'Please provide a price'],
         min: [0, 'Price must be positive'],
     },
+    compareAtPrice: {
+        type: Number,
+        default: 0,
+    },
     stock: {
         type: Number,
         required: [true, 'Please provide stock number'],
@@ -63,7 +67,24 @@ const ProductSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
-    }
+    },
+    isArchived: {
+        type: Boolean,
+        default: false
+    },
+
+    // Variants System (e.g. for different Fragrances with different Images)
+    variants: [{
+        fragrance: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Fragrance'
+        },
+        price: Number,
+        stock: Number,
+        sku: String,
+        imageUrl: String,
+        images: [String] // Multiple images for this specific variant
+    }]
 }, { timestamps: true });
 
 // Basic Slugify

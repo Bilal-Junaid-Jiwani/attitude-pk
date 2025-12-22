@@ -1,39 +1,44 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/connect';
 import Product from '@/lib/models/Product';
+import '@/lib/models/Category';
+import '@/lib/models/Fragrance';
+import '@/lib/models/Format';
 
-// GET: Single product
-export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     await dbConnect();
+    const { id } = await params;
     try {
-        const params = await props.params;
-        const product = await Product.findById(params.id)
+        const product = await Product.findById(id)
             .populate('category')
             .populate('fragrance')
             .populate('format');
-        if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+
+        if (!product) {
+            return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+        }
         return NextResponse.json(product);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-// PUT: Update product
-export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     await dbConnect();
+    const { id } = await params;
     try {
-        const params = await props.params;
         const body = await req.json();
 
-        // Sync imageUrl with the first image if exists
-        if (body.images && body.images.length > 0) {
+        if (body.images && body.images.length > 0 && !body.imageUrl) {
             body.imageUrl = body.images[0];
         }
 
-        const product = await Product.findByIdAndUpdate(params.id, body, {
-            new: true,
-            runValidators: true,
-        });
+        const product = await Product.findByIdAndUpdate(
+            id,
+            { ...body },
+            { new: true, runValidators: true }
+        );
+
         if (!product) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }
@@ -43,12 +48,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     }
 }
 
-// DELETE: Delete product
-export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     await dbConnect();
+    const { id } = await params;
     try {
-        const params = await props.params;
-        const product = await Product.findByIdAndDelete(params.id);
+        const product = await Product.findByIdAndDelete(id);
         if (!product) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }

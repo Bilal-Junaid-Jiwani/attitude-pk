@@ -22,6 +22,11 @@ const OrderSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    subtotal: { type: Number, default: 0 },
+    shippingCost: { type: Number, default: 0 },
+    tax: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    couponCode: { type: String },
     shippingAddress: {
         fullName: { type: String, required: true },
         email: { type: String, required: true },
@@ -33,12 +38,11 @@ const OrderSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
         default: 'COD',
-        enum: ['COD', 'Card'],
+        enum: ['COD', 'Card', 'Safepay', 'Online Payment'],
     },
     status: {
         type: String,
-        type: String,
-        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
         default: 'Pending',
     },
     paymentResult: {
@@ -46,6 +50,18 @@ const OrderSchema = new mongoose.Schema({
         status: String,
         update_time: String,
         email_address: String,
+    },
+    isPaid: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
+    paidAt: {
+        type: Date,
+    },
+    isArchived: {
+        type: Boolean,
+        default: false,
     },
 }, { timestamps: true });
 

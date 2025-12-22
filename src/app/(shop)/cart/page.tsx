@@ -132,10 +132,10 @@ export default function CartPage() {
                                 <span>Rs. {finalTotal.toLocaleString()}</span>
                             </div>
 
-                            <button className="w-full bg-[#1c524f] text-white py-4 rounded-md font-bold text-lg hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1c524f]/20">
+                            <Link href="/checkout" className="w-full bg-[#1c524f] text-white py-4 rounded-md font-bold text-lg hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1c524f]/20">
                                 <span>Checkout</span>
                                 <ArrowRight size={20} />
-                            </button>
+                            </Link>
 
                             <p className="text-xs text-center text-gray-400 mt-4 flex items-center justify-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-green-500"></span>

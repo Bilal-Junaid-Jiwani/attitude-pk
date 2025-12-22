@@ -1,27 +1,39 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Minus, Plus, ChevronDown, Check } from 'lucide-react';
 import ReviewsSection from '@/components/shop/ReviewsSection';
 import { useCart } from '@/context/CartContext';
 
+interface Variant {
+    _id: string;
+    fragrance?: { _id: string; name: string };
+    price: number;
+    stock: number;
+    sku: string;
+    imageUrl: string;
+    images: string[];
+}
+
 interface Product {
     _id: string;
     name: string;
     price: number;
+    compareAtPrice?: number;
     description: string;
     imageUrl: string;
     images: string[];
     category?: { name: string };
-    fragrance?: { name: string };
+    fragrance?: { _id: string; name: string };
     format?: { name: string };
     benefits?: string[];
     ingredients?: string;
     howToUse?: string;
     stock: number;
     subCategory?: string;
+    variants?: Variant[];
 }
 
 // Accordion Component Helper
@@ -43,6 +55,7 @@ const AccordionItem = ({ title, isOpen, onClick, children }: { title: string, is
 );
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
@@ -50,43 +63,29 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [openAccordion, setOpenAccordion] = useState<string | null>('description');
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [purchaseType, setPurchaseType] = useState<'onetime' | 'subscribe'>('onetime');
-    const { addToCart } = useCart();
 
-    const handleAddToCart = () => {
-        if (!product) return;
-        addToCart({
-            _id: product._id,
-            name: product.name,
-            price: currentPrice,
-            imageUrl: activeImage,
-            quantity: quantity,
-            subCategory: product.subCategory
-        });
-    };
+    // Variant State
+    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+
+    const { addToCart } = useCart();
 
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const { id } = await params;
                 const res = await fetch(`/api/products/${id}`);
                 if (res.ok) {
                     const data = await res.json();
                     setProduct(data);
+
                     // Set initial active image (prioritize array 0, or main imageUrl)
                     const initialImage = (data.images && data.images.length > 0) ? data.images[0] : data.imageUrl;
                     setActiveImage(initialImage);
 
-                    // Fetch related products (just fetching all and picking 4 random ones)
-                    const relatedRes = await fetch('/api/products');
-                    if (relatedRes.ok) {
-                        const allProducts: Product[] = await relatedRes.json();
-                        // Filter out current product, shuffle, and take 4
-                        const others = allProducts
-                            .filter(p => p._id !== id)
-                            .sort(() => 0.5 - Math.random())
-                            .slice(0, 4);
-                        setRelatedProducts(others);
-                    }
+                    // Set default selected variant to the Product ID (Main Variant)
+                    // If the product has variants, the "Main" product is the first option.
+                    // If no variants, this ID still represents the product itself.
+                    setSelectedVariantId(data._id);
+
                 }
             } catch (error) {
                 console.error('Failed to fetch product', error);
@@ -94,19 +93,57 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 setLoading(false);
             }
         };
-        fetchProduct();
-    }, [params]);
+        if (id) fetchProduct();
+    }, [id]);
+
+    const handleAddToCart = () => {
+        if (!product) return;
+        addToCart({
+            _id: product._id, // Use main product ID or Variant ID if you want distinct cart items per variant. For simplicity using ProductID, but storing variant info might be needed in future.
+            name: product.name + (currentVariant && currentVariant.fragrance ? ` - ${currentVariant.fragrance.name}` : ''),
+            price: currentPrice,
+            imageUrl: activeImage,
+            quantity: quantity,
+            subCategory: product.subCategory
+        });
+    };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     if (!product) return <div className="min-h-screen flex items-center justify-center">Product not found</div>;
 
-    const allImages = product.images && product.images.length > 0 ? product.images : [product.imageUrl];
+    // Construct All Variants (Main Product + Sub Variants)
+    const allVariants: Variant[] = [
+        {
+            _id: product._id,
+            fragrance: product.fragrance,
+            price: product.price,
+            stock: product.stock,
+            sku: '', // Main product SKU not strictly needed here for display
+            imageUrl: product.imageUrl,
+            images: product.images
+        },
+        ...(product.variants || [])
+    ];
+
+    // Derived State based on Variant Selection
+    // Find in allVariants or fallback to main product if not found (shouldn't happen with allVariants logic)
+    const currentVariant = allVariants.find(v => v._id === selectedVariantId) || allVariants[0];
+
+    // Fallbacks to Main Product Data
+    const displayPrice = currentVariant ? currentVariant.price : product.price;
+    const displayStock = currentVariant ? currentVariant.stock : product.stock;
+    const displayImages = (currentVariant && currentVariant.images && currentVariant.images.length > 0)
+        ? currentVariant.images
+        : (product.images && product.images.length > 0 ? product.images : [product.imageUrl]);
+
+    // Handle Image Switching when variant changes
+    // (Already handled in useEffect, but also on manual select)
 
     const toggleAccordion = (section: string) => {
         setOpenAccordion(openAccordion === section ? null : section);
     };
 
-    const currentPrice = purchaseType === 'subscribe' ? product.price * 0.9 : product.price;
+    const currentPrice = purchaseType === 'subscribe' ? displayPrice * 0.9 : displayPrice;
 
     return (
         <div className="min-h-screen bg-white pb-20 pt-10 px-4 sm:px-6 lg:px-12">
@@ -126,11 +163,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         <div className="sticky top-24 flex flex-col md:flex-row gap-4">
                             {/* Thumbnails (Vertical on Desktop) */}
                             <div className="hidden md:flex flex-col gap-4 w-20">
-                                {allImages.map((img, idx) => (
+                                {displayImages.map((img, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => setActiveImage(img)}
-                                        className={`relative w-20 h-24 border ${activeImage === img ? 'border-[#1c524f]' : 'border-transparent'} rounded-md overflow-hidden`}
+                                        className={`relative w-20 h-24 border ${activeImage === img ? 'border-[#1c524f]' : 'border-transparent'} rounded-md overflow-hidden bg-gray-50`}
                                     >
                                         <Image src={img} alt={`${product.name} ${idx}`} fill className="object-cover" />
                                     </button>
@@ -140,11 +177,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             {/* Main Image */}
                             <div className="flex-1 relative">
                                 <div className="relative w-full aspect-square md:aspect-[4/5] lg:aspect-square bg-transparent rounded-lg overflow-hidden">
+                                    {/* Discount Badge */}
+                                    {(product.compareAtPrice || 0) > displayPrice && (
+                                        <div className="absolute top-4 left-4 z-10 bg-[#d72c0d] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                            Sale
+                                        </div>
+                                    )}
                                     <Image
-                                        src={activeImage}
+                                        src={activeImage || displayImages[0]}
                                         alt={product.name}
                                         fill
-                                        className="object-contain"
+                                        className="object-contain" // Changed to contain for products
                                         priority
                                     />
                                 </div>
@@ -152,11 +195,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                             {/* Mobile Thumbnails (Horizontal) */}
                             <div className="md:hidden flex gap-4 overflow-x-auto pb-2">
-                                {allImages.map((img, idx) => (
+                                {displayImages.map((img, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => setActiveImage(img)}
-                                        className={`relative flex-shrink-0 w-16 h-20 border ${activeImage === img ? 'border-[#1c524f]' : 'border-transparent'} rounded-md overflow-hidden`}
+                                        className={`relative flex-shrink-0 w-16 h-20 border ${activeImage === img ? 'border-[#1c524f]' : 'border-transparent'} rounded-md overflow-hidden bg-gray-50`}
                                     >
                                         <Image src={img} alt={`${product.name} ${idx}`} fill className="object-cover" />
                                     </button>
@@ -166,19 +209,30 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     </div>
 
                     {/* RIGHT COLUMN: Details */}
-                    <div className="lg:col-span-5 space-y-8">
+                    <div className="lg:col-span-5 space-y-7">
                         <div>
-                            <h1 className="text-3xl font-heading font-bold text-[#1c524f] mb-2">{product.name}</h1>
-                            <p className="text-2xl font-bold text-gray-900">Rs. {currentPrice.toLocaleString()}</p>
+                            <h1 className="text-3xl font-heading font-bold text-[#1c524f] mb-3">{product.name}</h1>
+
+                            {/* Price Section */}
+                            <div className="flex items-baseline gap-3">
+                                <span className={`text-2xl font-bold ${(product.compareAtPrice || 0) > displayPrice ? 'text-[#d72c0d]' : 'text-[#1c524f]'}`}>
+                                    Rs. {currentPrice.toLocaleString()}
+                                </span>
+                                {(product.compareAtPrice || 0) > displayPrice && (
+                                    <span className="text-lg text-gray-500 line-through">
+                                        Rs. {product.compareAtPrice!.toLocaleString()}
+                                    </span>
+                                )}
+                            </div>
 
                             {/* Stars */}
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-3">
                                 <div className="flex text-[#1c524f]">
                                     {[...Array(5)].map((_, i) => (
                                         <Star key={i} size={16} fill="currentColor" />
                                     ))}
                                 </div>
-                                <span className="text-sm text-gray-500">(154 reviews)</span>
+                                <span className="text-sm text-gray-500">({(product._id.charCodeAt(product._id.length - 1) * 3) + 50} reviews)</span>
                             </div>
 
                             {/* Badges */}
@@ -189,26 +243,51 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             </div>
                         </div>
 
-                        {/* Fragrance Selector */}
-                        {product.fragrance && (
+                        <div className="h-px bg-gray-200" />
+
+                        {/* Variant (Fragrance) Selector */}
+                        {allVariants.length > 1 || (allVariants.length === 1 && allVariants[0].fragrance) ? (
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Fragrance</label>
-                                <div className="border border-gray-300 rounded-md p-3 text-gray-700 bg-white shadow-sm flex justify-between items-center cursor-pointer">
-                                    <span>{product.fragrance.name}</span>
-                                    <ChevronDown size={16} />
+                                <div className="relative">
+                                    <select
+                                        value={selectedVariantId || ''}
+                                        onChange={(e) => {
+                                            const variantId = e.target.value;
+                                            const variant = allVariants.find(v => v._id === variantId);
+                                            setSelectedVariantId(variantId);
+                                            if (variant) {
+                                                if (variant.images && variant.images.length > 0) setActiveImage(variant.images[0]);
+                                                else if (variant.imageUrl) setActiveImage(variant.imageUrl);
+                                            }
+                                        }}
+                                        className="w-full appearance-none border border-gray-300 rounded-md py-3 px-4 text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-[#1c524f] cursor-pointer"
+                                    >
+                                        {allVariants.map((variant) => (
+                                            <option key={variant._id} value={variant._id}>
+                                                {variant.fragrance?.name || 'Main Option'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                        <ChevronDown size={16} />
+                                    </div>
                                 </div>
                             </div>
+                        ) : null}
+
+                        {/* Inventory Warning */}
+                        {displayStock < 10 && displayStock > 0 && (
+                            <p className="text-[#d72c0d] text-sm font-medium animate-pulse">
+                                Only {displayStock} left in stock - order soon!
+                            </p>
+                        )}
+                        {displayStock === 0 && (
+                            <p className="text-gray-500 text-sm font-medium">
+                                Out of stock
+                            </p>
                         )}
 
-                        {/* Format Selector */}
-                        {product.format && (
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Format</label>
-                                <button className="border border-[#1c524f] bg-[#e8f5e9] text-[#1c524f] px-4 py-2 rounded-md text-sm font-bold">
-                                    {product.format.name}
-                                </button>
-                            </div>
-                        )}
 
                         {/* Purchase Options */}
                         <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -230,7 +309,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     </span>
                                 </div>
                                 <span className={`font-bold ${purchaseType === 'onetime' ? 'text-[#1c524f]' : 'text-gray-900'}`}>
-                                    Rs. {product.price.toLocaleString()}
+                                    Rs. {displayPrice.toLocaleString()}
                                 </span>
                             </label>
 
@@ -252,7 +331,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     </span>
                                 </div>
                                 <span className={`text-gray-500 ${purchaseType === 'subscribe' ? 'text-[#1c524f] font-bold' : ''}`}>
-                                    Rs. {(product.price * 0.9).toLocaleString()}
+                                    Rs. {(displayPrice * 0.9).toLocaleString()}
                                 </span>
                             </label>
                         </div>
@@ -270,9 +349,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             </div>
                             <button
                                 onClick={handleAddToCart}
-                                className="flex-1 bg-[#1c524f] text-white font-bold rounded-md hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2"
+                                disabled={displayStock === 0}
+                                className="flex-1 bg-[#1c524f] text-white font-bold rounded-md hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Add to cart
+                                {displayStock === 0 ? 'Out of Stock' : 'Add to cart'}
                             </button>
                         </div>
 

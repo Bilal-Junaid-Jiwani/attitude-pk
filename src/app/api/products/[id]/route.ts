@@ -13,7 +13,6 @@ export async function GET(
         await dbConnect();
 
         // Ensure models are registered (prevent populated model missing error)
-        // const _models = [Category, Fragrance, Format]; 
         console.log('Models registered for Detail:', [Category.modelName, Fragrance.modelName, Format.modelName]);
 
         const { id } = await params;
@@ -21,7 +20,12 @@ export async function GET(
         const product = await Product.findById(id)
             .populate('category', 'name')
             .populate('fragrance', 'name')
-            .populate('format', 'name');
+            .populate('format', 'name')
+            .populate({
+                path: 'variants.fragrance',
+                model: 'Fragrance',
+                select: 'name'
+            });
 
         if (!product) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });

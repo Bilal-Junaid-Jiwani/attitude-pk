@@ -5,13 +5,36 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, CreditCard, Lock } from 'lucide-react';
+import { Loader2, CreditCard, Lock, AlertCircle, Check, X } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 
 export default function CheckoutPage() {
     const { cart, cartTotal, clearCart } = useCart();
     const router = useRouter();
     const { addToast } = useToast();
+
+    // Payment Confirmation State
+    const [showPaymentCheck, setShowPaymentCheck] = useState<string | null>(null);
+
+    useEffect(() => {
+        const pendingOrder = localStorage.getItem('awaitingSafepay');
+        if (pendingOrder) {
+            setShowPaymentCheck(pendingOrder);
+        }
+    }, []);
+
+    const handleSafepayPaymentConfirmed = () => {
+        if (showPaymentCheck) {
+            localStorage.removeItem('awaitingSafepay');
+            clearCart(); // Optimistically clear cart here too
+            router.push(`/checkout/success?orderId=${showPaymentCheck}`);
+        }
+    };
+
+    const handleSafepayPaymentCancelled = () => {
+        localStorage.removeItem('awaitingSafepay');
+        setShowPaymentCheck(null);
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -168,6 +191,7 @@ export default function CheckoutPage() {
 
             if (res.ok && data.url) {
                 // 2. Redirect User to Hosted Checkout
+                localStorage.setItem('awaitingSafepay', orderId);
                 window.location.href = data.url;
             } else {
                 addToast(data.error || 'Failed to initialize payment', 'error');
@@ -211,6 +235,40 @@ export default function CheckoutPage() {
 
     return (
         <div className="min-h-screen bg-[#FAF9F6] py-12 px-4 sm:px-6 lg:px-8">
+
+            {/* Payment Confirmation Modal */}
+            {showPaymentCheck && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                                <AlertCircle className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">Completing Payment?</h3>
+                            <p className="text-gray-600">
+                                We noticed you just returned from Safepay. Did you complete your payment successfully?
+                            </p>
+                            <div className="grid grid-cols-2 gap-3 w-full pt-2">
+                                <button
+                                    onClick={handleSafepayPaymentCancelled}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                    <X size={20} />
+                                    No, Cancelled
+                                </button>
+                                <button
+                                    onClick={handleSafepayPaymentConfirmed}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 bg-[#1c524f] text-white rounded-xl font-bold hover:bg-[#153e3c] transition-colors"
+                                >
+                                    <Check size={20} />
+                                    Yes, Paid
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-heading font-bold text-[#1c524f] mb-8 text-center md:text-left">Checkout</h1>
 
