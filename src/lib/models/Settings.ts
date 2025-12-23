@@ -1,17 +1,16 @@
 import mongoose from 'mongoose';
 
-const CouponSchema = new mongoose.Schema({
-    code: { type: String, required: true, uppercase: true },
-    discountType: { type: String, enum: ['percentage', 'fixed'], default: 'percentage' },
-    discountValue: { type: Number, required: true },
-    isActive: { type: Boolean, default: true }
-});
-
-const SettingsSchema = new mongoose.Schema({
-    taxRate: { type: Number, default: 0 },
-    shippingCost: { type: Number, default: 200 },
-    coupons: [CouponSchema]
+const SettingSchema = new mongoose.Schema({
+    key: {
+        type: String,
+        required: [true, 'Setting key is required'],
+        unique: true,
+        trim: true,
+    },
+    value: {
+        type: mongoose.Schema.Types.Mixed, // Allows storing any object/value
+        required: [true, 'Setting value is required'],
+    },
 }, { timestamps: true });
 
-// Singleton pattern: We'll mostly read/write to the first document
-export default mongoose.models.Settings || mongoose.model('Settings', SettingsSchema);
+export default mongoose.models.Setting || mongoose.model('Setting', SettingSchema);

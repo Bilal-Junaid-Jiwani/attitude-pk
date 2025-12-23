@@ -5,11 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, ShoppingBag, Copy, X, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useToast } from '@/components/ui/ToastProvider';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
     const { clearCart } = useCart();
+    const { addToast } = useToast();
 
     const [isGuest, setIsGuest] = React.useState(false);
     const [showModal, setShowModal] = React.useState(false);
@@ -48,7 +50,7 @@ function SuccessContent() {
     const copyToClipboard = () => {
         if (orderId) {
             navigator.clipboard.writeText(orderId);
-            alert('Order ID copied to clipboard!'); // Could use Toast here if available in this file context, keeping simple for now
+            addToast('Order ID copied to clipboard!', 'success');
         }
     };
 
@@ -75,12 +77,26 @@ function SuccessContent() {
                             Since you are checking out as a guest, this order will <strong>disappear</strong> from this page if you refresh. Please save your Order ID to track it later.
                         </p>
 
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 flex items-center justify-between group cursor-pointer hover:border-[#1c524f] transition-all" onClick={copyToClipboard}>
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 flex items-center justify-between group">
                             <code className="text-lg font-mono font-bold text-[#1c524f]">{orderId}</code>
-                            <div className="flex items-center gap-2 text-gray-500 group-hover:text-[#1c524f]">
-                                <span className="text-xs font-bold">Copy</span>
+                        </div>
+
+                        <div className="flex gap-3 justify-center mb-6">
+                            <button
+                                onClick={copyToClipboard}
+                                className="bg-[#1c524f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#153e3c] transition-colors shadow-lg shadow-[#1c524f]/20 active:scale-95 duration-200 flex items-center gap-2 text-sm"
+                            >
                                 <Copy size={16} />
-                            </div>
+                                Copy ID
+                            </button>
+                            <Link
+                                href={`/orders/${orderId}/invoice`}
+                                target="_blank"
+                                className="bg-white border-2 border-[#1c524f] text-[#1c524f] px-4 py-2 rounded-lg font-medium hover:bg-[#1c524f]/5 transition-colors active:scale-95 duration-200 flex items-center gap-2 text-sm"
+                            >
+                                <span className="text-lg">📄</span>
+                                Invoice
+                            </Link>
                         </div>
 
                         <div className="space-y-3">

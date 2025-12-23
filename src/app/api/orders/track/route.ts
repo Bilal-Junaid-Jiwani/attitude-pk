@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         }
 
         // Find order by ID
-        const order = await Order.findById(orderId).select('status totalAmount items createdAt paymentMethod shippingAddress.city');
+        const order = await Order.findById(orderId);
 
         if (!order) {
             return NextResponse.json({ message: 'Order not found' }, { status: 404 });

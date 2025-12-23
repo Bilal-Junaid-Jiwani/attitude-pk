@@ -8,11 +8,35 @@ import { useCart } from '@/context/CartContext';
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, cartTotal } = useCart();
+    const [shippingConfig, setShippingConfig] = React.useState({ standardRate: 200, freeShippingThreshold: 5000 });
+    const [taxConfig, setTaxConfig] = React.useState({ enabled: false, rate: 0 });
 
-    // Calculate free shipping threshold (e.g. 5000)
-    const FREE_SHIPPING_THRESHOLD = 5000;
+    React.useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const [shippingRes, taxRes] = await Promise.all([
+                    fetch('/api/settings?key=shippingConfig'),
+                    fetch('/api/settings?key=taxConfig')
+                ]);
+
+                if (shippingRes.ok) {
+                    const data = await shippingRes.json();
+                    if (data && data.value) setShippingConfig(data.value);
+                }
+                if (taxRes.ok) {
+                    const data = await taxRes.json();
+                    if (data && data.value) setTaxConfig(data.value);
+                }
+            } catch (e) {
+                console.error("Failed to fetch settings", e);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const FREE_SHIPPING_THRESHOLD = shippingConfig?.freeShippingThreshold ?? 5000;
     const progress = Math.min((cartTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
-    const shippingCost = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 250;
+    const shippingCost = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : (shippingConfig?.standardRate ?? 200);
     const finalTotal = cartTotal + shippingCost;
 
     if (cart.length === 0) {
@@ -74,7 +98,15 @@ export default function CartPage() {
                                     <div>
                                         <h3 className="font-bold text-gray-900 text-lg sm:text-lg mb-1">{item.name}</h3>
                                         <p className="text-sm text-gray-500 mb-1">{item.subCategory || 'General'}</p>
-                                        <p className="font-bold text-[#1c524f]">Rs. {item.price.toLocaleString()}</p>
+                                        {item.originalPrice && item.originalPrice > item.price ? (
+                                            <div className="flex flex-col items-start gap-1">
+                                                <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Subscriber Discount</span>
+                                                <span className="text-sm text-gray-400 line-through">Rs. {item.originalPrice.toLocaleString()}</span>
+                                                <span className="font-bold text-[#d72c0d]">Rs. {item.price.toLocaleString()}</span>
+                                            </div>
+                                        ) : (
+                                            <p className="font-bold text-[#1c524f]">Rs. {item.price.toLocaleString()}</p>
+                                        )}
                                     </div>
 
                                     {/* Actions */}
@@ -122,14 +154,26 @@ export default function CartPage() {
                                 <div className="flex justify-between text-gray-600">
                                     <span>Shipping</span>
                                     <span className={shippingCost === 0 ? "text-green-600 font-bold" : "font-bold text-gray-900"}>
-                                        {shippingCost === 0 ? 'FREE' : `Rs. ${shippingCost}`}
+                                        {shippingCost === 0 ? 'FREE' : `Rs. ${shippingCost.toLocaleString()}`}
                                     </span>
                                 </div>
+                                {taxConfig.enabled && (
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Tax ({taxConfig.rate}%)</span>
+                                        <span>Rs. {Math.round(cartTotal * (taxConfig.rate / 100)).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {cart.some(item => item.originalPrice && item.originalPrice > item.price) && (
+                                    <div className="flex justify-between text-[#1c524f]">
+                                        <span>Subscription Savings</span>
+                                        <span>- Rs. {cart.reduce((acc, item) => acc + ((item.originalPrice || item.price) - item.price) * item.quantity, 0).toLocaleString()}</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex justify-between items-center text-lg font-bold text-[#1c524f] mb-6">
                                 <span>Total</span>
-                                <span>Rs. {finalTotal.toLocaleString()}</span>
+                                <span>Rs. {(finalTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0)).toLocaleString()}</span>
                             </div>
 
                             <Link href="/checkout" className="w-full bg-[#1c524f] text-white py-4 rounded-md font-bold text-lg hover:bg-[#153e3c] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1c524f]/20">

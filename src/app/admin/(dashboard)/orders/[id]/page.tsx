@@ -18,6 +18,18 @@ export default function OrderDetailPage() {
     const [isEditingAddress, setIsEditingAddress] = useState(false);
     const [editAddress, setEditAddress] = useState<any>({});
 
+    // Tracking state
+    const [trackingValues, setTrackingValues] = useState({ trackingId: '', courierCompany: '' });
+
+    useEffect(() => {
+        if (order) {
+            setTrackingValues({
+                trackingId: order.trackingId || '',
+                courierCompany: order.courierCompany || ''
+            });
+        }
+    }, [order]);
+
     useEffect(() => {
         fetchOrder();
     }, [id]);
@@ -71,6 +83,25 @@ export default function OrderDetailPage() {
             toast.success('Address updated successfully');
         } catch (error) {
             toast.error('Failed to update address');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleSaveTracking = async () => {
+        setUpdating(true);
+        try {
+            const res = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trackingValues),
+            });
+            if (!res.ok) throw new Error('Update failed');
+            const updated = await res.json();
+            setOrder(updated);
+            toast.success('Tracking info updated');
+        } catch (error) {
+            toast.error('Failed to update tracking info');
         } finally {
             setUpdating(false);
         }
@@ -315,6 +346,50 @@ export default function OrderDetailPage() {
 
                     {/* Right Column (Sidebar) */}
                     <div className="space-y-6">
+                        {/* Tracking Card */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <span className="bg-[#1c524f]/10 p-1.5 rounded text-[#1c524f]">
+                                    <MapPin size={16} />
+                                </span>
+                                Courier Tracking
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Courier Company</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. TCS, Leopards, M&P"
+                                        value={trackingValues.courierCompany}
+                                        onChange={(e) => setTrackingValues({ ...trackingValues, courierCompany: e.target.value })}
+                                        className="w-full mt-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#1c524f] focus:border-[#1c524f] p-2.5 outline-none transition-all"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Tracking ID</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Tracking ID"
+                                        value={trackingValues.trackingId}
+                                        onChange={(e) => setTrackingValues({ ...trackingValues, trackingId: e.target.value })}
+                                        className="w-full mt-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#1c524f] focus:border-[#1c524f] p-2.5 outline-none transition-all"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSaveTracking}
+                                    disabled={updating}
+                                    className="w-full bg-[#1c524f] text-white py-2 rounded-lg text-sm font-bold shadow hover:bg-[#15403d] transition-colors disabled:opacity-50"
+                                >
+                                    {updating ? 'Saving...' : 'Save Tracking Info'}
+                                </button>
+
+                                <p className="text-xs text-center text-gray-500">
+                                    Customer will see these details in their order history.
+                                </p>
+                            </div>
+                        </div>
                         {/* Customer Card */}
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <div className="flex justify-between items-center mb-4">

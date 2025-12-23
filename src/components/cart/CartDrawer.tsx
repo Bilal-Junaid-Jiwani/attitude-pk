@@ -23,9 +23,36 @@ export default function CartDrawer() {
         };
     }, [isCartOpen]);
 
-    const FREE_SHIPPING_THRESHOLD = 5000; // Example threshold
+    // Shipping & Tax Config State
+    const [shippingConfig, setShippingConfig] = React.useState({ standardRate: 200, freeShippingThreshold: 5000 });
+    const [taxConfig, setTaxConfig] = React.useState({ enabled: false, rate: 0 });
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const [shippingRes, taxRes] = await Promise.all([
+                    fetch('/api/settings?key=shippingConfig'),
+                    fetch('/api/settings?key=taxConfig')
+                ]);
+
+                if (shippingRes.ok) {
+                    const data = await shippingRes.json();
+                    if (data && data.value) setShippingConfig(data.value);
+                }
+                if (taxRes.ok) {
+                    const data = await taxRes.json();
+                    if (data && data.value) setTaxConfig(data.value);
+                }
+            } catch (e) {
+                console.error("Failed to fetch settings", e);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const FREE_SHIPPING_THRESHOLD = shippingConfig?.freeShippingThreshold ?? 5000;
     const progress = Math.min((cartTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
-    const shippingCost = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 250;
+    const shippingCost = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : (shippingConfig?.standardRate ?? 200);
 
     return (
         <AnimatePresence>
@@ -110,8 +137,16 @@ export default function CartDrawer() {
                                             </div>
 
                                             <div className="flex items-end justify-between mt-2">
-                                                <div className="text-sm font-bold text-gray-900">
-                                                    Rs. {item.price.toLocaleString()}
+                                                <div className="flex flex-col items-end">
+                                                    {item.originalPrice && item.originalPrice > item.price && (
+                                                        <>
+                                                            <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Subscriber Discount</span>
+                                                            <span className="text-xs text-gray-400 line-through mb-0.5">Rs. {item.originalPrice.toLocaleString()}</span>
+                                                        </>
+                                                    )}
+                                                    <div className={`text-sm font-bold text-gray-900 ${item.originalPrice ? 'text-[#d72c0d]' : ''}`}>
+                                                        Rs. {item.price.toLocaleString()}
+                                                    </div>
                                                 </div>
 
                                                 {/* Qty Control */}
@@ -141,17 +176,23 @@ export default function CartDrawer() {
                         {/* Footer */}
                         <div className="p-6 border-t border-gray-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                             <div className="space-y-2 mb-4">
+                                {taxConfig.enabled && (
+                                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                        <span>Tax ({taxConfig.rate}%)</span>
+                                        <span>Rs. {Math.round(cartTotal * (taxConfig.rate / 100)).toLocaleString()}</span>
+                                    </div>
+                                )}
                                 <Link
                                     href="/checkout"
                                     onClick={closeCart}
                                     className="w-full bg-[#1c524f] hover:bg-[#153e3c] text-white py-4 rounded-sm font-bold text-sm tracking-wide transition-colors flex justify-between px-6 items-center"
                                 >
-                                    <span>Rs. {(cartTotal + shippingCost).toLocaleString()}</span>
+                                    <span>Rs. {(cartTotal + shippingCost + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0)).toLocaleString()}</span>
                                     <span>Checkout</span>
                                 </Link>
                             </div>
                             <p className="text-xs text-center text-gray-400">
-                                Taxes and shipping calculated at checkout
+                                Shipping & taxes calculated at checkout
                             </p>
                         </div>
                     </motion.div>

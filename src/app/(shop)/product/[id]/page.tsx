@@ -6,10 +6,13 @@ import Link from 'next/link';
 import { Star, Minus, Plus, ChevronDown, Check } from 'lucide-react';
 import ReviewsSection from '@/components/shop/ReviewsSection';
 import { useCart } from '@/context/CartContext';
+import { useToast } from '@/components/ui/ToastProvider';
+import AuthModal from '@/components/ui/AuthModal';
 
 interface Variant {
     _id: string;
     fragrance?: { _id: string; name: string };
+    format?: { _id: string; name: string };
     price: number;
     stock: number;
     sku: string;
@@ -27,7 +30,7 @@ interface Product {
     images: string[];
     category?: { name: string };
     fragrance?: { _id: string; name: string };
-    format?: { name: string };
+    format?: { _id: string; name: string };
     benefits?: string[];
     ingredients?: string;
     howToUse?: string;
@@ -64,10 +67,61 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [purchaseType, setPurchaseType] = useState<'onetime' | 'subscribe'>('onetime');
 
-    // Variant State
-    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    // Variant Selection State
+    const [selectedFragrance, setSelectedFragrance] = useState<string>('');
+    const [selectedFormat, setSelectedFormat] = useState<string>('');
+
+    // Subscribe Config & Auth State
+    const [subscribeConfig, setSubscribeConfig] = useState<any>(null);
+    const [authModalOpen, setAuthModalOpen] = useState(false);
+    const { addToast } = useToast();
 
     const { addToCart } = useCart();
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const res = await fetch('/api/settings?key=subscribeConfig');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.value) setSubscribeConfig(data.value);
+                }
+            } catch (error) {
+                console.error('Failed to fetch subscribe config', error);
+            }
+        };
+        fetchConfig();
+    }, []);
+
+    const handlePurchaseTypeChange = async (type: 'onetime' | 'subscribe') => {
+        if (type === 'onetime') {
+            setPurchaseType('onetime');
+            return;
+        }
+
+        if (type === 'subscribe') {
+            // Check Eligibility
+            try {
+                const res = await fetch('/api/user/eligibility');
+                const data = await res.json();
+
+                if (!data.isLoggedIn) {
+                    setAuthModalOpen(true);
+                    return;
+                }
+
+                if (subscribeConfig?.newUsersOnly && !data.isNewUser) {
+                    addToast('This offer is only valid for new customers.', 'error');
+                    return;
+                }
+
+                setPurchaseType('subscribe');
+            } catch (error) {
+                console.error('Failed to check eligibility', error);
+                addToast('Something went wrong. Please try again.', 'error');
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -77,15 +131,19 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     const data = await res.json();
                     setProduct(data);
 
-                    // Set initial active image (prioritize array 0, or main imageUrl)
                     const initialImage = (data.images && data.images.length > 0) ? data.images[0] : data.imageUrl;
                     setActiveImage(initialImage);
 
-                    // Set default selected variant to the Product ID (Main Variant)
-                    // If the product has variants, the "Main" product is the first option.
-                    // If no variants, this ID still represents the product itself.
-                    setSelectedVariantId(data._id);
+                    // Initialize Filters based on Main Product
+                    if (data.fragrance) setSelectedFragrance(data.fragrance._id);
+                    if (data.format) setSelectedFormat(data.format._id);
 
+                    // If main product doesn't have them but variants do (edge case), try first variant
+                    if ((!data.fragrance || !data.format) && data.variants?.length > 0) {
+                        const firstV = data.variants[0];
+                        if (!data.fragrance && firstV.fragrance) setSelectedFragrance(firstV.fragrance._id);
+                        if (!data.format && firstV.format) setSelectedFormat(firstV.format._id);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch product', error);
@@ -96,54 +154,105 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         if (id) fetchProduct();
     }, [id]);
 
+    // Construct All Variants (Defensive check for product)
+    const allVariants: Variant[] = product ? [
+        {
+            _id: product._id,
+            fragrance: product.fragrance,
+            format: product.format,
+            price: product.price,
+            stock: product.stock,
+            sku: '',
+            imageUrl: product.imageUrl,
+            images: product.images
+        },
+        ...(product.variants || [])
+    ] : [];
+
+    // Get Unique Options (Primary: Formats, Secondary: Fragrances based on Format)
+    const uniqueFormats = Array.from(new Map(allVariants.filter(v => v.format).map(v => [v.format!._id, v.format!])).values());
+
+    // Filter variants based on selected format to find available fragrances
+    const variantsForFormat = selectedFormat
+        ? allVariants.filter(v => v.format?._id === selectedFormat)
+        : allVariants;
+
+    const availableFragrances = Array.from(new Map(
+        variantsForFormat.filter(v => v.fragrance).map(v => [v.fragrance!._id, v.fragrance!])
+    ).values());
+
+    // Auto-select fragrance if current selection is invalid for new format
+    useEffect(() => {
+        if (availableFragrances.length > 0) {
+            const isCurrentValid = availableFragrances.some(f => f._id === selectedFragrance);
+            if (!isCurrentValid) {
+                setSelectedFragrance(availableFragrances[0]._id);
+            }
+        }
+    }, [selectedFormat, availableFragrances, selectedFragrance]);
+
+    // Compute Current Variant based on selection
+    // Find in allVariants or fallback to main product if not found
+    const currentVariant = allVariants.find(v => {
+        const fragMatch = !selectedFragrance || (v.fragrance?._id === selectedFragrance);
+        const formatMatch = !selectedFormat || (v.format?._id === selectedFormat);
+        return fragMatch && formatMatch;
+    }) || allVariants[0];
+
+    // Update Image when selection changes
+    useEffect(() => {
+        if (currentVariant) {
+            const newImg = (currentVariant.images && currentVariant.images.length > 0)
+                ? currentVariant.images[0]
+                : currentVariant.imageUrl;
+            // Only update if it's different to avoid potential loops/flickers, though check is cheap
+            if (newImg && newImg !== activeImage) setActiveImage(newImg);
+        }
+    }, [currentVariant?._id]); // Only update when the actual variant changes, not on every render
+
+    // Derived Display Data
+    const displayPrice = currentVariant ? currentVariant.price : (product?.price || 0);
+    const displayStock = currentVariant ? currentVariant.stock : (product?.stock || 0);
+    const displayImages = (currentVariant && currentVariant.images && currentVariant.images.length > 0)
+        ? currentVariant.images
+        : (product && product.images && product.images.length > 0 ? product.images : (product ? [product.imageUrl] : []));
+
+    const currentPrice = purchaseType === 'subscribe'
+        ? (subscribeConfig?.discountType === 'percentage'
+            ? displayPrice * (1 - (subscribeConfig.discountValue / 100))
+            : displayPrice - subscribeConfig?.discountValue || displayPrice)
+        : displayPrice;
+
+    // Actions
     const handleAddToCart = () => {
         if (!product) return;
+
+        const isSubscribe = purchaseType === 'subscribe';
+        // Create unique ID for subscription items to prevent merging with one-time purchases
+        const cartItemId = isSubscribe ? `${product._id}-sub` : product._id;
+
         addToCart({
-            _id: product._id, // Use main product ID or Variant ID if you want distinct cart items per variant. For simplicity using ProductID, but storing variant info might be needed in future.
-            name: product.name + (currentVariant && currentVariant.fragrance ? ` - ${currentVariant.fragrance.name}` : ''),
+            _id: cartItemId,
+            name: product.name +
+                (currentVariant?.fragrance ? ` - ${currentVariant.fragrance.name}` : '') +
+                (currentVariant?.format ? ` - ${currentVariant.format.name}` : '') +
+                (isSubscribe ? ' (Subscribe & Save)' : ''),
             price: currentPrice,
+            originalPrice: isSubscribe ? displayPrice : undefined, // Track original price for stats
             imageUrl: activeImage,
             quantity: quantity,
             subCategory: product.subCategory
         });
+
+        addToast(isSubscribe ? 'Added subscription to cart' : 'Added to cart', 'success');
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     if (!product) return <div className="min-h-screen flex items-center justify-center">Product not found</div>;
 
-    // Construct All Variants (Main Product + Sub Variants)
-    const allVariants: Variant[] = [
-        {
-            _id: product._id,
-            fragrance: product.fragrance,
-            price: product.price,
-            stock: product.stock,
-            sku: '', // Main product SKU not strictly needed here for display
-            imageUrl: product.imageUrl,
-            images: product.images
-        },
-        ...(product.variants || [])
-    ];
-
-    // Derived State based on Variant Selection
-    // Find in allVariants or fallback to main product if not found (shouldn't happen with allVariants logic)
-    const currentVariant = allVariants.find(v => v._id === selectedVariantId) || allVariants[0];
-
-    // Fallbacks to Main Product Data
-    const displayPrice = currentVariant ? currentVariant.price : product.price;
-    const displayStock = currentVariant ? currentVariant.stock : product.stock;
-    const displayImages = (currentVariant && currentVariant.images && currentVariant.images.length > 0)
-        ? currentVariant.images
-        : (product.images && product.images.length > 0 ? product.images : [product.imageUrl]);
-
-    // Handle Image Switching when variant changes
-    // (Already handled in useEffect, but also on manual select)
-
     const toggleAccordion = (section: string) => {
         setOpenAccordion(openAccordion === section ? null : section);
     };
-
-    const currentPrice = purchaseType === 'subscribe' ? displayPrice * 0.9 : displayPrice;
 
     return (
         <div className="min-h-screen bg-white pb-20 pt-10 px-4 sm:px-6 lg:px-12">
@@ -159,6 +268,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                 {/* LEFT COLUMN: Gallery */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    {/* ... Gallery code ... (No changes here, but ensuring context matches if needed, though this replace is focused below) */}
+                    {/* Actually, the Replace tool needs strict context. I will target the block from 'Get Unique Options' down to the end of Fragrance Selector to be safe and clean. */}
                     <div className="lg:col-span-7">
                         <div className="sticky top-24 flex flex-col md:flex-row gap-4">
                             {/* Thumbnails (Vertical on Desktop) */}
@@ -235,7 +346,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 <span className="text-sm text-gray-500">({(product._id.charCodeAt(product._id.length - 1) * 3) + 50} reviews)</span>
                             </div>
 
-                            {/* Badges */}
                             <div className="flex flex-wrap gap-4 mt-4 text-xs font-bold text-gray-600 uppercase tracking-wide">
                                 <span className="flex items-center gap-1"><Check size={14} /> EWG Verified</span>
                                 <span className="flex items-center gap-1"><Check size={14} /> Vegan</span>
@@ -245,28 +355,40 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                         <div className="h-px bg-gray-200" />
 
-                        {/* Variant (Fragrance) Selector */}
-                        {allVariants.length > 1 || (allVariants.length === 1 && allVariants[0].fragrance) ? (
+                        {/* Format Selector */}
+                        {uniqueFormats.length > 0 && (
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Format</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {uniqueFormats.map((f, i) => (
+                                        <button
+                                            key={f._id || i}
+                                            onClick={() => setSelectedFormat(f._id)}
+                                            className={`px-4 py-2 border rounded-md text-sm font-medium transition-all ${selectedFormat === f._id
+                                                ? 'border-[#1c524f] bg-[#1c524f] text-white'
+                                                : 'border-gray-300 bg-white text-gray-700 hover:border-[#1c524f]'
+                                                }`}
+                                        >
+                                            {f.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Fragrance Selector */}
+                        {availableFragrances.length > 0 && (
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Fragrance</label>
                                 <div className="relative">
                                     <select
-                                        value={selectedVariantId || ''}
-                                        onChange={(e) => {
-                                            const variantId = e.target.value;
-                                            const variant = allVariants.find(v => v._id === variantId);
-                                            setSelectedVariantId(variantId);
-                                            if (variant) {
-                                                if (variant.images && variant.images.length > 0) setActiveImage(variant.images[0]);
-                                                else if (variant.imageUrl) setActiveImage(variant.imageUrl);
-                                            }
-                                        }}
+                                        value={selectedFragrance}
+                                        onChange={(e) => setSelectedFragrance(e.target.value)}
                                         className="w-full appearance-none border border-gray-300 rounded-md py-3 px-4 text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-[#1c524f] cursor-pointer"
                                     >
-                                        {allVariants.map((variant) => (
-                                            <option key={variant._id} value={variant._id}>
-                                                {variant.fragrance?.name || 'Main Option'}
-                                            </option>
+                                        <option value="" disabled>Select Fragrance</option>
+                                        {availableFragrances.map(f => (
+                                            <option key={f._id} value={f._id}>{f.name}</option>
                                         ))}
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
@@ -274,7 +396,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     </div>
                                 </div>
                             </div>
-                        ) : null}
+                        )}
 
                         {/* Inventory Warning */}
                         {displayStock < 10 && displayStock > 0 && (
@@ -297,7 +419,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     ? 'bg-white border-[#1c524f] ring-1 ring-[#1c524f]'
                                     : 'bg-transparent border-transparent hover:bg-white'
                                     }`}
-                                onClick={() => setPurchaseType('onetime')}
+                                onClick={() => handlePurchaseTypeChange('onetime')}
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${purchaseType === 'onetime' ? 'border-[#1c524f]' : 'border-gray-400'
@@ -314,27 +436,38 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             </label>
 
                             {/* Subscribe and Save */}
-                            <label
-                                className={`flex items-center justify-between cursor-pointer p-3 rounded border transition-all ${purchaseType === 'subscribe'
-                                    ? 'bg-white border-[#1c524f] ring-1 ring-[#1c524f]'
-                                    : 'bg-transparent border-transparent hover:bg-white'
-                                    }`}
-                                onClick={() => setPurchaseType('subscribe')}
-                            >
-                                <div className="flex items-center gap-3 opacity-90">
-                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${purchaseType === 'subscribe' ? 'border-[#1c524f]' : 'border-gray-400'
-                                        }`}>
-                                        {purchaseType === 'subscribe' && <div className="w-2 h-2 rounded-full bg-[#1c524f]" />}
+                            {subscribeConfig?.enabled && (
+                                <label
+                                    className={`flex items-center justify-between cursor-pointer p-3 rounded border transition-all ${purchaseType === 'subscribe'
+                                        ? 'bg-white border-[#1c524f] ring-1 ring-[#1c524f]'
+                                        : 'bg-transparent border-transparent hover:bg-white'
+                                        }`}
+                                    onClick={() => handlePurchaseTypeChange('subscribe')}
+                                >
+                                    <div className="flex items-center gap-3 opacity-90">
+                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${purchaseType === 'subscribe' ? 'border-[#1c524f]' : 'border-gray-400'
+                                            }`}>
+                                            {purchaseType === 'subscribe' && <div className="w-2 h-2 rounded-full bg-[#1c524f]" />}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className={`font-medium ${purchaseType === 'subscribe' ? 'text-gray-900 font-bold' : 'text-gray-700'}`}>
+                                                Subscribe and save {subscribeConfig.discountType === 'percentage' ? `${subscribeConfig.discountValue}%` : `Rs. ${subscribeConfig.discountValue}`}
+                                            </span>
+                                            {subscribeConfig.newUsersOnly && (
+                                                <span className="text-xs text-[#d72c0d] font-bold uppercase tracking-wide">New Customers Only</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className={`font-medium ${purchaseType === 'subscribe' ? 'text-gray-900 font-bold' : 'text-gray-700'}`}>
-                                        Subscribe and save -10%
+                                    <span className={`text-gray-500 ${purchaseType === 'subscribe' ? 'text-[#1c524f] font-bold' : ''}`}>
+                                        Rs. {(subscribeConfig?.discountType === 'percentage'
+                                            ? displayPrice * (1 - (subscribeConfig.discountValue / 100))
+                                            : displayPrice - subscribeConfig?.discountValue).toLocaleString()}
                                     </span>
-                                </div>
-                                <span className={`text-gray-500 ${purchaseType === 'subscribe' ? 'text-[#1c524f] font-bold' : ''}`}>
-                                    Rs. {(displayPrice * 0.9).toLocaleString()}
-                                </span>
-                            </label>
+                                </label>
+                            )}
                         </div>
+
+                        <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
 
                         {/* Add to Cart Actions */}
                         <div className="flex gap-4">

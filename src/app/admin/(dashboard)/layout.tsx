@@ -13,6 +13,7 @@ export default function AdminLayout({
 }) {
     const router = useRouter();
     const [authorized, setAuthorized] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     useEffect(() => {
         // Double check auth & role on entry
@@ -47,8 +48,11 @@ export default function AdminLayout({
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            <Sidebar />
-            <main className="flex-1 lg:ml-64 print:ml-0">
+            <Sidebar
+                isCollapsed={isSidebarCollapsed}
+                toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+            <main className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} print:ml-0`}>
                 <Toaster position="top-right" />
                 {children}
             </main>

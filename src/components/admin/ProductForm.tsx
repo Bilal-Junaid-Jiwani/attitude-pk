@@ -12,6 +12,7 @@ interface Format { _id: string; name: string }
 interface Variant {
     id: string;
     fragranceId: string;
+    formatId: string;
     price: number;
     stock: number;
     sku: string;
@@ -117,7 +118,8 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                 setHasVariants(true);
                 setVariants(initialData.variants.map((v: any) => ({
                     id: v._id || Math.random().toString(36).substr(2, 9),
-                    fragranceId: v.fragrance?._id || v.fragrance,
+                    fragranceId: v.fragrance?._id || v.fragrance || '',
+                    formatId: v.format?._id || v.format || '',
                     price: v.price || 0,
                     stock: v.stock || 0,
                     sku: v.sku || '',
@@ -134,6 +136,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             {
                 id: Math.random().toString(36).substr(2, 9),
                 fragranceId: '',
+                formatId: '',
                 price: formData.price || 0,
                 stock: 0,
                 sku: '',
@@ -160,6 +163,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                 ...formData,
                 variants: hasVariants ? variants.map(v => ({
                     fragrance: v.fragranceId,
+                    format: v.formatId,
                     price: v.price,
                     stock: v.stock,
                     sku: v.sku,
@@ -611,7 +615,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                         {hasVariants && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                                 <p className="text-xs text-gray-500">
-                                    Add variants based on Fragrance. Each variant has its own price, stock, and gallery of images.
+                                    Add variants based on Fragrance and Format (Size). Each variant has its own price, stock, and gallery of images.
                                 </p>
 
                                 <div className="border rounded-lg overflow-hidden">
@@ -619,6 +623,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                         <thead className="bg-gray-50 border-b">
                                             <tr>
                                                 <th className="px-3 py-2 font-medium">Fragrance</th>
+                                                <th className="px-3 py-2 font-medium">Format</th>
                                                 <th className="px-3 py-2 font-medium">Price</th>
                                                 <th className="px-3 py-2 font-medium">Stock</th>
                                                 <th className="px-3 py-2 font-medium">Images</th>
@@ -636,6 +641,18 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                                         >
                                                             <option value="">Select...</option>
                                                             {fragrances.map(f => (
+                                                                <option key={f._id} value={f._id}>{f.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        <select
+                                                            className="w-full border rounded px-2 py-1 outline-none focus:border-blue-500"
+                                                            value={v.formatId}
+                                                            onChange={e => updateVariant(v.id, 'formatId', e.target.value)}
+                                                        >
+                                                            <option value="">Select...</option>
+                                                            {formats.map(f => (
                                                                 <option key={f._id} value={f._id}>{f.name}</option>
                                                             ))}
                                                         </select>

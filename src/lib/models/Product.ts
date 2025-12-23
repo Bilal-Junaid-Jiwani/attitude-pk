@@ -79,6 +79,10 @@ const ProductSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Fragrance'
         },
+        format: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Format'
+        },
         price: Number,
         stock: Number,
         sku: String,

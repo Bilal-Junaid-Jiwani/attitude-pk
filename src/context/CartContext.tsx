@@ -10,6 +10,7 @@ export interface CartItem {
     imageUrl: string;
     quantity: number;
     subCategory?: string; // e.g. "Shampoo + Wash"
+    originalPrice?: number; // Added to track discounts
 }
 
 interface CartContextType {

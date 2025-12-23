@@ -45,6 +45,14 @@ const OrderSchema = new mongoose.Schema({
         enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
         default: 'Pending',
     },
+    trackingId: {
+        type: String,
+        required: false,
+    },
+    courierCompany: {
+        type: String,
+        required: false,
+    },
     paymentResult: {
         id: String,
         status: String,
@@ -66,3 +74,4 @@ const OrderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema);
+// Force schema refresh

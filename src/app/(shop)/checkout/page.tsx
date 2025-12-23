@@ -51,6 +51,39 @@ export default function CheckoutPage() {
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; amount: number; type: string } | null>(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+
+    // Shipping & Tax Config State
+    const [shippingConfig, setShippingConfig] = useState({ standardRate: 200, freeShippingThreshold: 5000 });
+    const [taxConfig, setTaxConfig] = useState({ enabled: false, rate: 0 });
+
+    useEffect(() => {
+        // Fetch Settings
+        const fetchSettings = async () => {
+            try {
+                const [shippingRes, taxRes] = await Promise.all([
+                    fetch('/api/settings?key=shippingConfig'),
+                    fetch('/api/settings?key=taxConfig')
+                ]);
+
+                if (shippingRes.ok) {
+                    const data = await shippingRes.json();
+                    if (data && data.value) setShippingConfig(data.value);
+                }
+                if (taxRes.ok) {
+                    const data = await taxRes.json();
+                    if (data && data.value) setTaxConfig(data.value);
+                }
+            } catch (e) {
+                console.error("Failed to fetch settings", e);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     // Fetch user data for pre-fill
     useEffect(() => {
         const fetchUser = async () => {
@@ -105,9 +138,14 @@ export default function CheckoutPage() {
                     subCategory: item.subCategory,
                     imageUrl: item.imageUrl
                 })),
-                totalAmount: cartTotal,
                 shippingAddress: formData,
-                paymentMethod: 'COD'
+                paymentMethod: 'COD',
+                couponCode: appliedCoupon?.code,
+                discount: appliedCoupon?.amount || 0,
+                subtotal: cartTotal,
+                tax: taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0,
+                shippingCost: cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200),
+                totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)
             };
 
             const res = await fetch('/api/orders', {
@@ -154,10 +192,15 @@ export default function CheckoutPage() {
                     subCategory: item.subCategory,
                     imageUrl: item.imageUrl
                 })),
-                totalAmount: cartTotal,
                 shippingAddress: formData,
                 paymentMethod: 'Safepay',
-                status: 'pending' // Initial status
+                status: 'pending', // Initial status
+                couponCode: appliedCoupon?.code,
+                discount: appliedCoupon?.amount || 0,
+                subtotal: cartTotal,
+                tax: taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0,
+                shippingCost: cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200),
+                totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)
             };
 
             const orderRes = await fetch('/api/orders', {
@@ -181,7 +224,7 @@ export default function CheckoutPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amount: cartTotal,
+                    amount: cartTotal + (cartTotal >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardRate) - (appliedCoupon?.amount || 0), // Use total after discount and shipping
                     currency: 'PKR',
                     orderId: orderId // Pass orderId so backend can append to redirect
                 })
@@ -424,7 +467,14 @@ export default function CheckoutPage() {
                                             <p className="text-xs text-gray-500 mb-1">{item.subCategory}</p>
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-500">Qty: {item.quantity}</span>
-                                                <span className="font-bold text-gray-900">Rs. {(item.price * item.quantity).toLocaleString()}</span>
+                                                <div className="flex flex-col items-end">
+                                                    <div className="flex items-baseline gap-2">
+                                                        {item.originalPrice && item.originalPrice > item.price && (
+                                                            <span className="text-xs text-gray-500 line-through">Rs. {(item.originalPrice * item.quantity).toLocaleString()}</span>
+                                                        )}
+                                                        <span className="font-bold text-gray-900">Rs. {(item.price * item.quantity).toLocaleString()}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -438,13 +488,95 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex justify-between text-gray-600">
                                     <span>Shipping</span>
-                                    <span className="font-medium text-[#1c524f]">Free</span>
+                                    {cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? (
+                                        <span className="text-green-600 font-bold">Free</span>
+                                    ) : (
+                                        <span className="font-medium text-gray-900">Rs. {(shippingConfig?.standardRate ?? 200).toLocaleString()}</span>
+                                    )}
+                                </div>
+                                {taxConfig.enabled && (
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Tax ({taxConfig.rate}%)</span>
+                                        <span>Rs. {Math.round(cartTotal * (taxConfig.rate / 100)).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {cart.some(item => item.originalPrice && item.originalPrice > item.price) && (
+                                    <div className="flex justify-between text-[#1c524f]">
+                                        <span>Subscription Savings</span>
+                                        <span>- Rs. {cart.reduce((acc, item) => acc + ((item.originalPrice || item.price) - item.price) * item.quantity, 0).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {appliedCoupon && (
+                                    <div className="flex justify-between text-green-600">
+                                        <span className="flex items-center gap-1">
+                                            Discount <span className="text-xs bg-green-100 px-1 rounded uppercase">({appliedCoupon.code})</span>
+                                        </span>
+                                        <span>- Rs. {(appliedCoupon.amount || 0).toLocaleString()}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Coupon Input */}
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Discount Code</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Enter coupon code"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        disabled={!!appliedCoupon}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#1c524f] outline-none uppercase disabled:bg-gray-100 disabled:text-gray-400"
+                                    />
+                                    {appliedCoupon ? (
+                                        <button
+                                            onClick={() => {
+                                                setAppliedCoupon(null);
+                                                setCouponCode('');
+                                                addToast('Coupon removed', 'success');
+                                            }}
+                                            className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={async () => {
+                                                if (!couponCode) return;
+                                                setCouponLoading(true);
+                                                try {
+                                                    const res = await fetch('/api/coupons/validate', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ code: couponCode, cartTotal })
+                                                    });
+                                                    const data = await res.json();
+                                                    if (res.ok && data.valid) {
+                                                        setAppliedCoupon({ code: data.code, amount: data.discountAmount, type: data.discountType });
+                                                        addToast(data.message, 'success');
+                                                    } else {
+                                                        addToast(data.message || 'Invalid coupon', 'error');
+                                                    }
+                                                } catch {
+                                                    addToast('Failed to validate coupon', 'error');
+                                                } finally {
+                                                    setCouponLoading(false);
+                                                }
+                                            }}
+                                            disabled={couponLoading || !couponCode}
+                                            className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                        >
+                                            {couponLoading ? '...' : 'Apply'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between items-center">
                                 <span className="font-bold text-lg text-gray-900">Total</span>
-                                <span className="font-bold text-xl text-[#1c524f]">Rs. {cartTotal.toLocaleString()}</span>
+                                <span className="font-bold text-xl text-[#1c524f]">
+                                    Rs. {(cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)).toLocaleString()}
+                                </span>
                             </div>
 
                             <button

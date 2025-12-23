@@ -25,6 +25,11 @@ export async function GET(
                 path: 'variants.fragrance',
                 model: 'Fragrance',
                 select: 'name'
+            })
+            .populate({
+                path: 'variants.format',
+                model: 'Format',
+                select: 'name'
             });
 
         if (!product) {

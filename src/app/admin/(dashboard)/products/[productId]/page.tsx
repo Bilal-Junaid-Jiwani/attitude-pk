@@ -6,8 +6,8 @@ import CoolLoader from '@/components/ui/CoolLoader';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useRouter } from 'next/navigation';
 
-export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
+export default function EditProductPage({ params }: { params: Promise<{ productId: string }> }) {
+    const { productId } = use(params);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const { addToast } = useToast();
@@ -16,7 +16,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const res = await fetch(`/api/admin/products/${id}`);
+                const res = await fetch(`/api/admin/products/${productId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setProduct(data);
@@ -32,10 +32,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             }
         };
 
-        if (id) {
+        if (productId) {
             fetchProduct();
         }
-    }, [id, addToast, router]);
+    }, [productId, addToast, router]);
 
     if (loading) return <CoolLoader />;
     if (!product) return <div>Product not found</div>;

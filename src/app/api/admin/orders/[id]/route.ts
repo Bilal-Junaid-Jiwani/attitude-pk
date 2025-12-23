@@ -85,6 +85,14 @@ export async function PUT(
             };
         }
 
+        if (body.trackingId !== undefined) {
+            order.trackingId = body.trackingId;
+        }
+
+        if (body.courierCompany !== undefined) {
+            order.courierCompany = body.courierCompany;
+        }
+
         const updatedOrder = await order.save();
         return NextResponse.json(updatedOrder);
 
