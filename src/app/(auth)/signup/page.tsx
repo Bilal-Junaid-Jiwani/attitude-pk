@@ -29,8 +29,12 @@ export default function SignupPage() {
                 throw new Error(data.error || 'Signup failed');
             }
 
-            // Redirect to login or home
-            router.push('/login?registered=true');
+            // Redirect to verify email if OTP is required
+            if (data.requiresOtp) {
+                router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+            } else {
+                router.push('/login?registered=true');
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {

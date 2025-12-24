@@ -220,7 +220,7 @@ export default function InvoicePage() {
                 {/* Print Footer */}
                 <div className="p-8 text-center text-xs text-gray-400 print:block hidden">
                     <p>Thank you for shopping with Attitude.pk</p>
-                    <p>For support, contact support@attitude.pk</p>
+                    <p>For support, contact attitudelivingpk@gmail.com</p>
                 </div>
             </div>
         </div>

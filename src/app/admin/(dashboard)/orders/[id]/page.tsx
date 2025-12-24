@@ -516,8 +516,8 @@ export default function OrderDetailPage() {
                     </div>
                     <div className="text-right">
                         <h2 className="text-xl font-bold text-[#1c524f]">Attitude.pk</h2>
-                        <p className="text-sm text-gray-600">Karachi, Pakistan</p>
-                        <p className="text-sm text-gray-600">contact@attitude.pk</p>
+                        <p className="text-sm text-gray-600">Head Office: D-22/1, Block-17, Gulshan-e-Iqbal, Karachi-75300, Pakistan</p>
+                        <p className="text-sm text-gray-600">attitudelivingpk@gmail.com</p>
                     </div>
                 </div>
 
@@ -596,7 +596,7 @@ export default function OrderDetailPage() {
 
                 <div className="mt-16 pt-8 border-t border-gray-200 text-center text-xs text-gray-500">
                     <p className="mb-1">Thank you for shopping with Attitude.pk!</p>
-                    <p>For any questions, please contact our support at contact@attitude.pk</p>
+                    <p>For any questions, please contact our support at attitudelivingpk@gmail.com</p>
                 </div>
             </div>
         </>
