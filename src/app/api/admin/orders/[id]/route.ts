@@ -4,6 +4,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import dbConnect from '@/lib/db/connect';
 import Order from '@/lib/models/Order';
 import User from '@/lib/models/User';
+import { sendOrderShippedEmail } from '@/lib/email/sendEmail';
 
 async function getUserIdFromToken() {
     const cookieStore = await cookies();
@@ -94,6 +95,27 @@ export async function PUT(
         }
 
         const updatedOrder = await order.save();
+
+
+        // Manual trigger for shipment email
+        if (body.sendTrackingEmail) {
+            console.log(`📧 Manual trigger: Sending shipment email for order ${updatedOrder._id}...`);
+            const recipientEmail = updatedOrder.shippingAddress?.email;
+
+            if (updatedOrder.trackingId && recipientEmail) {
+                try {
+                    await sendOrderShippedEmail(recipientEmail, updatedOrder);
+                    console.log('✅ Shipment email sent successfully');
+                    return NextResponse.json({ ...updatedOrder.toObject(), message: 'Email sent successfully' });
+                } catch (emailError) {
+                    console.error('❌ Failed to send shipment email:', emailError);
+                    return NextResponse.json({ ...updatedOrder.toObject(), message: 'Failed to send email' }, { status: 500 });
+                }
+            } else {
+                return NextResponse.json({ ...updatedOrder.toObject(), message: 'Missing tracking ID or customer email' }, { status: 400 });
+            }
+        }
+
         return NextResponse.json(updatedOrder);
 
     } catch (error: any) {

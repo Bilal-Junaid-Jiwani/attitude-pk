@@ -75,7 +75,7 @@ export async function GET(req: Request) {
 
             return {
                 _id: order._id,
-                orderNumber: `#${order._id.toString().slice(-4).toUpperCase()}`,
+                orderNumber: `#${order._id.toString().toUpperCase()}`,
                 date: order.createdAt,
                 customer: customerName,
                 total: order.totalAmount,

@@ -33,6 +33,9 @@ interface Coupon {
     usageLimit?: number;
     usedCount: number;
     isActive: boolean;
+    maxUsesPerUser?: number;
+    startDate?: string;
+    expiryDate?: string;
 }
 
 export default function SettingsPage() {
@@ -41,6 +44,7 @@ export default function SettingsPage() {
     const { addToast } = useToast();
 
     // Settings States
+    // ... (Keep existing states)
     const [subscribeConfig, setSubscribeConfig] = useState<SubscribeConfig>({
         enabled: false, discountType: 'percentage', discountValue: 10, newUsersOnly: false
     });
@@ -60,9 +64,13 @@ export default function SettingsPage() {
         code: '',
         discountType: 'percentage',
         discountValue: 0,
-        maxUsesPerUser: 1
+        maxUsesPerUser: 1, // Default 1
+        startDate: '',
+        expiryDate: '',
+        isUnlimited: false
     });
     const [addingCoupon, setAddingCoupon] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchAllSettings();
@@ -121,32 +129,74 @@ export default function SettingsPage() {
         }
     };
 
-    const handleAddCoupon = async () => {
+    const handleSubmitCoupon = async () => {
         if (!newCoupon.code || !newCoupon.discountValue) {
             addToast('Please fill required fields', 'error');
             return;
         }
         setAddingCoupon(true);
         try {
-            const res = await fetch('/api/coupons', {
-                method: 'POST',
+            const isEdit = !!editingId;
+            const url = isEdit ? `/api/coupons/${editingId}` : '/api/coupons';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            // Handle Unlimited Logic
+            const payload = {
+                ...newCoupon,
+                maxUsesPerUser: newCoupon.isUnlimited ? 999999 : newCoupon.maxUsesPerUser,
+                usageLimit: newCoupon.isUnlimited ? 999999 : undefined // Optional global limit
+            };
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newCoupon)
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
 
             if (res.ok) {
-                setCoupons([data, ...coupons]);
-                setNewCoupon({ code: '', discountType: 'percentage', discountValue: 0, maxUsesPerUser: 1 });
-                addToast('Coupon created', 'success');
+                if (isEdit) {
+                    setCoupons(coupons.map(c => c._id === editingId ? data : c));
+                    addToast('Coupon updated', 'success');
+                } else {
+                    setCoupons([data, ...coupons]);
+                    addToast('Coupon created', 'success');
+                }
+                resetCouponForm();
             } else {
-                addToast(data.error || 'Failed to create coupon', 'error');
+                addToast(data.error || `Failed to ${isEdit ? 'update' : 'create'} coupon`, 'error');
             }
         } catch (error) {
-            addToast('Failed to create coupon', 'error');
+            addToast('Operation failed', 'error');
         } finally {
             setAddingCoupon(false);
         }
+    };
+
+    const handleEditClick = (coupon: Coupon) => {
+        setEditingId(coupon._id);
+        setNewCoupon({
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            maxUsesPerUser: coupon.maxUsesPerUser || 1,
+            startDate: coupon.startDate ? new Date(coupon.startDate).toISOString().split('T')[0] : '',
+            expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split('T')[0] : '',
+            isUnlimited: (coupon.maxUsesPerUser && coupon.maxUsesPerUser > 10000) ? true : false
+        });
+    };
+
+    const resetCouponForm = () => {
+        setEditingId(null);
+        setNewCoupon({
+            code: '',
+            discountType: 'percentage',
+            discountValue: 0,
+            maxUsesPerUser: 1,
+            startDate: '',
+            expiryDate: '',
+            isUnlimited: false
+        });
     };
 
     const handleDeleteCoupon = async (id: string) => {
@@ -208,7 +258,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
-                                    <input type="number" value={subscribeConfig.discountValue} onChange={(e) => setSubscribeConfig({ ...subscribeConfig, discountValue: parseFloat(e.target.value) })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                                    <input type="number" value={subscribeConfig.discountValue} onChange={(e) => setSubscribeConfig({ ...subscribeConfig, discountValue: parseFloat(e.target.value) || 0 })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
                                 </div>
                             </div>
                             <div className="flex items-center">
@@ -226,11 +276,11 @@ export default function SettingsPage() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Standard Rate (Rs)</label>
-                        <input type="number" value={shippingConfig.standardRate} onChange={(e) => setShippingConfig({ ...shippingConfig, standardRate: parseFloat(e.target.value) })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                        <input type="number" value={shippingConfig.standardRate} onChange={(e) => setShippingConfig({ ...shippingConfig, standardRate: parseFloat(e.target.value) || 0 })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Free Shipping Threshold (Rs)</label>
-                        <input type="number" value={shippingConfig.freeShippingThreshold} onChange={(e) => setShippingConfig({ ...shippingConfig, freeShippingThreshold: parseFloat(e.target.value) })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                        <input type="number" value={shippingConfig.freeShippingThreshold} onChange={(e) => setShippingConfig({ ...shippingConfig, freeShippingThreshold: parseFloat(e.target.value) || 0 })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
                     </div>
                 </div>
             </div>
@@ -249,7 +299,7 @@ export default function SettingsPage() {
                     {taxConfig.enabled && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
-                            <input type="number" value={taxConfig.rate} onChange={(e) => setTaxConfig({ ...taxConfig, rate: parseFloat(e.target.value) })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                            <input type="number" value={taxConfig.rate} onChange={(e) => setTaxConfig({ ...taxConfig, rate: parseFloat(e.target.value) || 0 })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
                         </div>
                     )}
                 </div>
@@ -270,7 +320,9 @@ export default function SettingsPage() {
                     {couponConfig.enabled && (
                         <div className="border-t border-gray-100 pt-6">
                             <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                                <h3 className="text-sm font-bold text-gray-900 mb-3">Create New Coupon</h3>
+                                <h3 className="text-sm font-bold text-gray-900 mb-3">
+                                    {editingId ? 'Edit Coupon' : 'Create New Coupon'}
+                                </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                                     <div className="md:col-span-1">
                                         <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
@@ -299,28 +351,72 @@ export default function SettingsPage() {
                                             type="number"
                                             placeholder="10"
                                             value={newCoupon.discountValue}
-                                            onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: parseFloat(e.target.value) })}
+                                            onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: parseFloat(e.target.value) || 0 })}
                                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                                         />
                                     </div>
+                                    {/* Row 2: Dates */}
                                     <div className="md:col-span-1">
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Max Uses/User</label>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
                                         <input
-                                            type="number"
-                                            placeholder="1"
-                                            value={newCoupon.maxUsesPerUser}
-                                            onChange={(e) => setNewCoupon({ ...newCoupon, maxUsesPerUser: parseInt(e.target.value) || 1 })}
+                                            type="date"
+                                            value={newCoupon.startDate || ''}
+                                            onChange={(e) => setNewCoupon({ ...newCoupon, startDate: e.target.value })}
                                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                                         />
                                     </div>
                                     <div className="md:col-span-1">
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                                        <input
+                                            type="date"
+                                            value={newCoupon.expiryDate || ''}
+                                            onChange={(e) => setNewCoupon({ ...newCoupon, expiryDate: e.target.value })}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-1 flex items-center h-full pb-3">
+                                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={newCoupon.isUnlimited}
+                                                onChange={(e) => setNewCoupon({ ...newCoupon, isUnlimited: e.target.checked })}
+                                                className="rounded border-gray-300 text-[#1c524f] focus:ring-[#1c524f]"
+                                            />
+                                            <span className="text-xs font-medium">Unlimited Usage</span>
+                                        </label>
+                                    </div>
+
+                                    {!newCoupon.isUnlimited && (
+                                        <div className="md:col-span-1">
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Max Uses/User</label>
+                                            <input
+                                                type="number"
+                                                placeholder="1"
+                                                value={newCoupon.maxUsesPerUser}
+                                                onChange={(e) => setNewCoupon({ ...newCoupon, maxUsesPerUser: parseInt(e.target.value) || 1 })}
+                                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="md:col-span-1 flex gap-2">
                                         <button
-                                            onClick={handleAddCoupon}
+                                            onClick={handleSubmitCoupon}
                                             disabled={addingCoupon}
-                                            className="w-full flex items-center justify-center gap-2 bg-[#1c524f] text-white py-2 rounded-md font-medium hover:bg-[#153e3c] transition-colors text-sm disabled:opacity-50"
+                                            className="flex-1 flex items-center justify-center gap-1 bg-[#1c524f] text-white py-2 rounded-md font-medium hover:bg-[#153e3c] transition-colors text-sm disabled:opacity-50"
                                         >
-                                            <Plus size={16} /> Add Coupon
+                                            {editingId ? <RefreshCcw size={14} /> : <Plus size={14} />}
+                                            {editingId ? 'Update' : 'Add'}
                                         </button>
+                                        {editingId && (
+                                            <button
+                                                onClick={resetCouponForm}
+                                                className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-600"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -344,12 +440,20 @@ export default function SettingsPage() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => handleDeleteCoupon(coupon._id)}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleEditClick(coupon)}
+                                                    className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                >
+                                                    <RefreshCcw size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteCoupon(coupon._id)}
+                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

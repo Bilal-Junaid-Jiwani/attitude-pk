@@ -26,6 +26,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ valid: false, message: 'This coupon is no longer active' }, { status: 400 });
         }
 
+        if (coupon.startDate && new Date() < new Date(coupon.startDate)) {
+            return NextResponse.json({ valid: false, message: 'This coupon is not active yet' }, { status: 400 });
+        }
+
         if (coupon.expiryDate && new Date() > new Date(coupon.expiryDate)) {
             return NextResponse.json({ valid: false, message: 'This coupon has expired' }, { status: 400 });
         }
@@ -45,12 +49,14 @@ export async function POST(req: Request) {
         if (token && coupon.maxUsesPerUser) {
             try {
                 const decoded: any = jwt.verify(token.value, JWT_SECRET);
-                const userId = decoded.userId;
+                const userId = decoded.userId || decoded.id; // Support both id formats
 
                 // Count how many times this user has used this specific coupon code
+                // EXCLUDING Cancelled or Returned orders
                 const userUsageCount = await Order.countDocuments({
                     user: userId,
-                    couponCode: coupon.code
+                    couponCode: coupon.code,
+                    status: { $nin: ['Cancelled', 'Returned'] }
                 });
 
                 if (userUsageCount >= coupon.maxUsesPerUser) {

@@ -10,8 +10,8 @@ interface EmailOptions {
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
+        user: process.env.EMAIL_USER || process.env.GMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD,
     },
 });
 
@@ -61,7 +61,7 @@ export const sendOTPEmail = async (to: string, otp: string) => {
 };
 
 export const sendOrderConfirmationEmail = async (to: string, order: any) => {
-    const subject = `Order Confirmation #${order._id.toString().slice(-6).toUpperCase()} - Attitude.pk`;
+    const subject = `Order Confirmation #${order._id.toString().toUpperCase()} - Attitude.pk`;
 
     // Calculate totals for email
     const subtotal = order.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
@@ -80,7 +80,7 @@ export const sendOrderConfirmationEmail = async (to: string, order: any) => {
         </div>
         <div style="padding: 30px;">
             <p style="color: #666; font-size: 16px;">Hi <strong>${order.shippingAddress.fullName}</strong>,</p>
-            <p style="color: #666; Line-height: 1.5;">Your order <strong>#${order._id.toString().slice(-6).toUpperCase()}</strong> has been placed successfully. We will notify you once it ships.</p>
+            <p style="color: #666; Line-height: 1.5;">Your order <strong>#${order._id.toString().toUpperCase()}</strong> has been placed successfully. We will notify you once it ships.</p>
             
             <h3 style="color: #333; margin-top: 30px; border-bottom: 2px solid #1c524f; padding-bottom: 10px;">Order Summary</h3>
             <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
@@ -116,7 +116,7 @@ export const sendAdminNewOrderEmail = async (order: any) => {
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_USER; // Fallback
     if (!adminEmail) return;
 
-    const subject = `[NEW ORDER] #${order._id.toString().slice(-6).toUpperCase()} - Rs. ${order.totalAmount.toLocaleString()}`;
+    const subject = `[NEW ORDER] #${order._id.toString().toUpperCase()} - Rs. ${order.totalAmount.toLocaleString()}`;
     const html = `
     <div style="font-family: Arial, sans-serif;">
         <h2 style="color: #1c524f;">New Order Received!</h2>
@@ -155,5 +155,47 @@ export const sendContactInquiryEmail = async (data: { name: string; email: strin
     </div>
     `;
 
+
     return sendEmail({ to: adminEmail, subject: emailSubject, html, text: data.message });
 };
+
+export const sendOrderShippedEmail = async (to: string, order: any) => {
+    const subject = `Your Order #${order._id.toString().toUpperCase()} has Shipped! - Attitude.pk`;
+
+    // Formatting tracking info
+    const trackingInfo = order.trackingId
+        ? `<p style="font-size: 16px; color: #333;"><strong>Courier:</strong> ${order.courierCompany || 'Unknown'}<br><strong>Tracking ID:</strong> ${order.trackingId}</p>`
+        : '';
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+        <div style="background-color: #1c524f; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">Order Shipped! 🚚</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="color: #666; font-size: 16px;">Hi <strong>${order.shippingAddress.fullName}</strong>,</p>
+            <p style="color: #666; line-height: 1.5;">Great news! Your order <strong>#${order._id.toString().toUpperCase()}</strong> has been dispatched and is on its way to you.</p>
+            
+            <div style="background-color: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #1c524f; border-radius: 4px;">
+                <h3 style="margin: 0 0 10px 0; color: #1c524f;">Tracking Information</h3>
+                ${trackingInfo}
+                <p style="margin: 10px 0 0 0; font-size: 13px; color: #777;">Please allow some time for the tracking status to update on the courier's website.</p>
+            </div>
+
+            <p style="text-align: center; color: #555; font-size: 14px; margin: 20px 0;">
+                Your order will be delivered to your address within <strong>3 to 5 business days</strong>.
+            </p>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order._id}/invoice" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">View Order Invoice</a>
+            </div>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; color: #aaa; font-size: 12px;">
+            <p>Thank you for shopping with Attitude.pk!</p>
+        </div>
+    </div>
+    `;
+
+    return sendEmail({ to, subject, html });
+};
+

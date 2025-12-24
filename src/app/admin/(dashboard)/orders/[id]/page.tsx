@@ -107,6 +107,29 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleSendTrackingEmail = async () => {
+        if (!order.trackingId) return toast.error('Please save tracking ID first');
+        if (!confirm('Send shipment notification email to customer?')) return;
+
+        setUpdating(true);
+        try {
+            const res = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sendTrackingEmail: true }),
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.message || 'Failed to send email');
+
+            toast.success('Shipment email sent successfully!');
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to send email');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     const handleDeleteOrder = async () => {
         if (!confirm('Are you sure you want to delete this order PERMANENTLY?')) return;
         setUpdating(true);
@@ -139,12 +162,12 @@ export default function OrderDetailPage() {
                 {/* Top Navigation */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
-                        <Link href="/admin/orders" className="p-2 border bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600">
+                        <button onClick={() => router.back()} className="p-2 border bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600">
                             <ArrowLeft size={16} />
-                        </Link>
+                        </button>
                         <div>
                             <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                #{order._id.slice(-4).toUpperCase()}
+                                #{order._id.toUpperCase()}
                                 <span className={`px-2 py-0.5 text-xs rounded-full ${isPaid ? 'bg-gray-200 text-gray-700' : 'bg-yellow-200 text-yellow-800'}`}>
                                     {isPaid ? 'Paid' : 'Payment Pending'}
                                 </span>
@@ -385,6 +408,15 @@ export default function OrderDetailPage() {
                                     {updating ? 'Saving...' : 'Save Tracking Info'}
                                 </button>
 
+                                <button
+                                    onClick={handleSendTrackingEmail}
+                                    disabled={updating || !order.trackingId}
+                                    className="w-full bg-white border border-[#1c524f] text-[#1c524f] py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <Mail size={16} />
+                                    Send Shipment Email
+                                </button>
+
                                 <p className="text-xs text-center text-gray-500">
                                     Customer will see these details in their order history.
                                 </p>
@@ -511,7 +543,7 @@ export default function OrderDetailPage() {
                                 'INVOICE'
                             )}
                         </h1>
-                        <p className="text-sm text-gray-500">Order #{order.orderNumber || order._id.slice(-6).toUpperCase()}</p>
+                        <p className="text-sm text-gray-500">Order #{order.orderNumber || order._id.toUpperCase()}</p>
                         <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">

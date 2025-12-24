@@ -27,7 +27,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Coupon code already exists' }, { status: 400 });
         }
 
-        const coupon = await Coupon.create(body);
+        // Validate dates
+        if (body.startDate && body.expiryDate) {
+            if (new Date(body.startDate) > new Date(body.expiryDate)) {
+                return NextResponse.json({ error: 'Start date cannot be after expiry date' }, { status: 400 });
+            }
+        }
+
+        const coupon = await Coupon.create({
+            ...body,
+            startDate: body.startDate ? new Date(body.startDate) : undefined,
+            expiryDate: body.expiryDate ? new Date(body.expiryDate) : undefined,
+        });
         return NextResponse.json(coupon, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to create coupon' }, { status: 500 });

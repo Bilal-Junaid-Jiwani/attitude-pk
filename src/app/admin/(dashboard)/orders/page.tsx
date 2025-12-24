@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Calendar, ChevronDown, Check, MoreHorizontal, Filter,
     ArrowUpDown, Search, Download, Upload, X
@@ -35,22 +35,29 @@ interface Stats {
 }
 
 export default function AdminOrdersPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const { addToast } = useToast();
+
+    // Initial State from URL
+    const initialRange = searchParams.get('range') || 'today';
+    const initialStart = searchParams.get('startDate') || '';
+    const initialEnd = searchParams.get('endDate') || '';
+
     const [orders, setOrders] = useState<Order[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedTab, setSelectedTab] = useState('All');
+    const [selectedTab, setSelectedTab] = useState(searchParams.get('tab') || 'All');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Date Filtering State
     const [dateRangeLabel, setDateRangeLabel] = useState('Today');
-    const [dateRange, setDateRange] = useState('today'); // internal key
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    const [dateRange, setDateRange] = useState(initialRange);
+    const [startDate, setStartDate] = useState(initialStart);
+    const [endDate, setEndDate] = useState(initialEnd);
     const [showDateMenu, setShowDateMenu] = useState(false);
-    const [isCustom, setIsCustom] = useState(false);
+    const [isCustom, setIsCustom] = useState(initialRange === 'custom');
 
-    const router = useRouter();
-    const { addToast } = useToast();
     const dateMenuRef = useRef<HTMLDivElement>(null);
 
     // Close menu on click outside
@@ -92,27 +99,47 @@ export default function AdminOrdersPage() {
         }
     };
 
-    // Initial Load - Defaults to "All" or "Today" based on preference?
-    // User requested "Restore previous design" which said "Today". So let's default to Today.
+    // Initial Load
     useEffect(() => {
-        applyPreset('today');
+        if (dateRange === 'custom' && startDate && endDate) {
+            setDateRangeLabel(`${startDate} - ${endDate}`);
+            fetchOrders(startDate, endDate);
+        } else {
+            applyPreset(dateRange, false);
+        }
     }, []);
 
-    const applyPreset = (preset: string) => {
-        setDateRange(preset);
-        setIsCustom(preset === 'custom');
+    // Update URL when filters change
+    const updateUrl = (params: any) => {
+        const newParams = new URLSearchParams(searchParams.toString());
+        Object.keys(params).forEach(key => {
+            if (params[key]) newParams.set(key, params[key]);
+            else newParams.delete(key);
+        });
+        router.replace(`?${newParams.toString()}`);
+    };
+
+    const applyPreset = (preset: string, updateState = true) => {
+        if (updateState) {
+            setDateRange(preset);
+            setIsCustom(preset === 'custom');
+        }
 
         if (preset === 'custom') {
             setDateRangeLabel('Custom Range');
-            return; // Don't fetch yet, wait for user input
+            updateUrl({ range: 'custom' });
+            return;
         }
 
-        setShowDateMenu(false); // Close menu if picking a preset
+        setShowDateMenu(false);
 
         if (preset === 'all') {
             setDateRangeLabel('All Time');
-            setStartDate('');
-            setEndDate('');
+            if (updateState) {
+                setStartDate('');
+                setEndDate('');
+            }
+            updateUrl({ range: 'all', startDate: '', endDate: '' });
             fetchOrders();
             return;
         }
@@ -122,7 +149,6 @@ export default function AdminOrdersPage() {
 
         if (preset === 'today') {
             setDateRangeLabel('Today');
-            // today
         } else if (preset === 'yesterday') {
             setDateRangeLabel('Yesterday');
             start.setDate(start.getDate() - 1);
@@ -137,14 +163,20 @@ export default function AdminOrdersPage() {
 
         const s = getLocalDateStr(start);
         const e = getLocalDateStr(end);
-        setStartDate(s);
-        setEndDate(e);
+
+        if (updateState) {
+            setStartDate(s);
+            setEndDate(e);
+        }
+
+        updateUrl({ range: preset, startDate: s, endDate: e });
         fetchOrders(s, e);
     };
 
     const handleCustomApply = () => {
         if (!startDate || !endDate) return;
         setDateRangeLabel(`${startDate} - ${endDate}`);
+        updateUrl({ range: 'custom', startDate, endDate });
         fetchOrders(startDate, endDate);
         setShowDateMenu(false);
     };
@@ -154,10 +186,23 @@ export default function AdminOrdersPage() {
         setSelectedIds([]);
     }, [selectedTab]);
 
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
     const [statusFilter, setStatusFilter] = useState('All');
     const [paymentFilter, setPaymentFilter] = useState('All');
     const [fulfillmentFilter, setFulfillmentFilter] = useState('All');
+
+    const handleTabChange = (tab: string) => {
+        setSelectedTab(tab);
+        updateUrl({ tab });
+    };
+
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val);
+        // Debounce URL update could be better, but simple replace is fine for now
+        // Or wait for a button/blur. Let's just update for now.
+        if (val) updateUrl({ q: val });
+        else updateUrl({ q: '' });
+    };
 
     const filteredOrders = orders.filter(order => {
         // Tab Filter
@@ -317,8 +362,8 @@ export default function AdminOrdersPage() {
                                                 key={opt.val}
                                                 onClick={() => applyPreset(opt.val)}
                                                 className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${dateRange === opt.val
-                                                        ? 'bg-gray-100 text-[#008060] font-bold'
-                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                    ? 'bg-gray-100 text-[#008060] font-bold'
+                                                    : 'text-gray-700 hover:bg-gray-50'
                                                     }`}
                                             >
                                                 {opt.label}
@@ -379,7 +424,7 @@ export default function AdminOrdersPage() {
                     {['All', 'Unfulfilled', 'Unpaid', 'Open', 'Archived'].map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setSelectedTab(tab)}
+                            onClick={() => handleTabChange(tab)}
                             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${selectedTab === tab
                                 ? 'border-[#1c524f] text-[#1c524f]'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -398,7 +443,7 @@ export default function AdminOrdersPage() {
                             type="text"
                             placeholder="Filter orders"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             className="w-full pl-8 pr-4 py-1.5 text-xs border border-gray-300 rounded shadow-sm focus:ring-1 focus:ring-[#1c524f] focus:border-[#1c524f] outline-none transition-all"
                         />
                     </div>
@@ -428,7 +473,7 @@ export default function AdminOrdersPage() {
                                 setStatusFilter('All');
                                 setPaymentFilter('All');
                                 setFulfillmentFilter('All');
-                                setSearchQuery('');
+                                handleSearchChange('');
                             }}
                             className="text-xs text-gray-500 hover:text-gray-900 ml-2"
                         >
