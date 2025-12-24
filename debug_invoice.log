@@ -508,3 +508,53 @@
 2025-12-23T17:24:07.775Z - Product Found: YES
 2025-12-23T17:24:07.776Z - Product Lookup Complete
 2025-12-23T17:24:07.776Z - Sending Response
+2025-12-24T05:56:06.698Z - --- API Call Started ---
+2025-12-24T05:56:06.700Z - DB Connected
+2025-12-24T05:56:06.700Z - Raw Param ID: 6947d840d76574adcaa36cd3
+2025-12-24T05:56:06.700Z - Cleaned ID: 6947d840d76574adcaa36cd3
+2025-12-24T05:56:06.893Z - Order Found: YES
+2025-12-24T05:56:06.893Z - Starting Product Lookup...
+2025-12-24T05:56:06.895Z - Looking up Product ID: 6946ff79dad0e43597df1fc0
+2025-12-24T05:56:06.896Z - Looking up Product ID: 6946fc4ddad0e43597df1f80
+2025-12-24T05:56:06.897Z - Looking up Product ID: 6946eda8b434f939072c96b7
+2025-12-24T05:56:06.897Z - Looking up Product ID: 6946f414dad0e43597df1f1a
+2025-12-24T05:56:06.898Z - Looking up Product ID: 694700acdad0e43597df1fe5
+2025-12-24T05:56:06.899Z - Looking up Product ID: 6946fe41dad0e43597df1fa6
+2025-12-24T05:56:07.020Z - Product Found: YES
+2025-12-24T05:56:07.101Z - Product Found: YES
+2025-12-24T05:56:07.121Z - Product Found: YES
+2025-12-24T05:56:07.283Z - Product Found: YES
+2025-12-24T05:56:07.669Z - Product Found: YES
+2025-12-24T05:56:08.162Z - Product Found: YES
+2025-12-24T05:56:08.164Z - Product Lookup Complete
+2025-12-24T05:56:08.165Z - Sending Response
+2025-12-24T06:00:15.632Z - --- API Call Started ---
+2025-12-24T06:00:15.635Z - DB Connected
+2025-12-24T06:00:15.636Z - Raw Param ID: 6947d840d76574adcaa36cd3
+2025-12-24T06:00:15.636Z - Cleaned ID: 6947d840d76574adcaa36cd3
+2025-12-24T06:00:15.821Z - Order Found: YES
+2025-12-24T06:00:15.821Z - Starting Product Lookup...
+2025-12-24T06:00:15.821Z - Looking up Product ID: 6946ff79dad0e43597df1fc0
+2025-12-24T06:00:15.822Z - Looking up Product ID: 6946fc4ddad0e43597df1f80
+2025-12-24T06:00:15.822Z - Looking up Product ID: 6946eda8b434f939072c96b7
+2025-12-24T06:00:15.822Z - Looking up Product ID: 6946f414dad0e43597df1f1a
+2025-12-24T06:00:15.823Z - Looking up Product ID: 694700acdad0e43597df1fe5
+2025-12-24T06:00:15.823Z - Looking up Product ID: 6946fe41dad0e43597df1fa6
+2025-12-24T06:00:15.932Z - Product Found: YES
+2025-12-24T06:00:15.933Z - Product Found: YES
+2025-12-24T06:00:15.935Z - Product Found: YES
+2025-12-24T06:00:16.013Z - Product Found: YES
+2025-12-24T06:00:16.871Z - Product Found: YES
+2025-12-24T06:00:17.339Z - Product Found: YES
+2025-12-24T06:00:17.341Z - Product Lookup Complete
+2025-12-24T06:00:17.342Z - Sending Response
+2025-12-24T06:01:40.081Z - --- API Call Started ---
+2025-12-24T06:01:40.083Z - DB Connected
+2025-12-24T06:01:40.083Z - Raw Param ID: 694acfff47cc3adbbd7a8c3f
+2025-12-24T06:01:40.084Z - Cleaned ID: 694acfff47cc3adbbd7a8c3f
+2025-12-24T06:01:40.270Z - Order Found: YES
+2025-12-24T06:01:40.270Z - Starting Product Lookup...
+2025-12-24T06:01:40.271Z - Looking up Product ID: 6946ff79dad0e43597df1fc0
+2025-12-24T06:01:40.453Z - Product Found: YES
+2025-12-24T06:01:40.454Z - Product Lookup Complete
+2025-12-24T06:01:40.454Z - Sending Response

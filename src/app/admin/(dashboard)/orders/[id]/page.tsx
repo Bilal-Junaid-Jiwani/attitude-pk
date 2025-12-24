@@ -107,9 +107,15 @@ export default function OrderDetailPage() {
         }
     };
 
+    const [showEmailModal, setShowEmailModal] = useState(false);
+
     const handleSendTrackingEmail = async () => {
         if (!order.trackingId) return toast.error('Please save tracking ID first');
-        if (!confirm('Send shipment notification email to customer?')) return;
+        setShowEmailModal(true);
+    };
+
+    const confirmSendEmail = async () => {
+        setShowEmailModal(false);
 
         setUpdating(true);
         try {
@@ -160,28 +166,28 @@ export default function OrderDetailPage() {
         <>
             <div className="p-6 max-w-6xl mx-auto bg-[#F6F6F7] min-h-screen text-[#303030] print:hidden">
                 {/* Top Navigation */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => router.back()} className="p-2 border bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
+                    <div className="flex items-center gap-4 w-full">
+                        <button onClick={() => router.back()} className="p-2 border bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600 flex-shrink-0">
                             <ArrowLeft size={16} />
                         </button>
-                        <div>
-                            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                #{order._id.toUpperCase()}
-                                <span className={`px-2 py-0.5 text-xs rounded-full ${isPaid ? 'bg-gray-200 text-gray-700' : 'bg-yellow-200 text-yellow-800'}`}>
+                        <div className="overflow-hidden">
+                            <h1 className="text-xl font-bold text-gray-900 flex flex-wrap items-center gap-2">
+                                <span className="truncate">#{order._id.toUpperCase()}</span>
+                                <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${isPaid ? 'bg-gray-200 text-gray-700' : 'bg-yellow-200 text-yellow-800'}`}>
                                     {isPaid ? 'Paid' : 'Payment Pending'}
                                 </span>
-                                <span className={`px-2 py-0.5 text-xs rounded-full ${isFulfilled ? 'bg-gray-200 text-gray-700' : 'bg-yellow-200 text-yellow-800'}`}>
+                                <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${isFulfilled ? 'bg-gray-200 text-gray-700' : 'bg-yellow-200 text-yellow-800'}`}>
                                     {order.status}
                                 </span>
-                                {isArchived && <span className="px-2 py-0.5 text-xs rounded-full bg-gray-500 text-white">Archived</span>}
+                                {isArchived && <span className="px-2 py-0.5 text-xs rounded-full bg-gray-500 text-white whitespace-nowrap">Archived</span>}
                             </h1>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 truncate">
                                 {new Date(order.createdAt).toLocaleString()} from Online Store
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
                         {order.status !== 'Cancelled' && order.status !== 'Returned' && (
                             <>
                                 {order.status !== 'Delivered' && (
@@ -416,6 +422,36 @@ export default function OrderDetailPage() {
                                     <Mail size={16} />
                                     Send Shipment Email
                                 </button>
+
+                                {showEmailModal && (
+                                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
+                                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4 scale-100 animate-in zoom-in-95 duration-200">
+                                            <div className="flex flex-col items-center text-center mb-6">
+                                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-[#1c524f] mb-4">
+                                                    <Mail size={24} />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900">Send Shipment Email?</h3>
+                                                <p className="text-sm text-gray-500 mt-2">
+                                                    This will notify the customer that their order <strong>#{order._id.toUpperCase()}</strong> has been shipped with Tracking ID <strong>{order.trackingId}</strong> via <strong>{order.courierCompany}</strong>.
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => setShowEmailModal(false)}
+                                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={confirmSendEmail}
+                                                    className="flex-1 px-4 py-2 bg-[#1c524f] text-white rounded-lg font-medium hover:bg-[#15403d]"
+                                                >
+                                                    Send Email
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <p className="text-xs text-center text-gray-500">
                                     Customer will see these details in their order history.

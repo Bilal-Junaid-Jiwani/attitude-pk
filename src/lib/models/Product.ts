@@ -11,6 +11,7 @@ const ProductSchema = new mongoose.Schema({
         type: String,
         unique: true,
         lowercase: true,
+        index: true,
     },
     description: {
         type: String,
@@ -66,7 +67,8 @@ const ProductSchema = new mongoose.Schema({
 
     isActive: {
         type: Boolean,
-        default: true
+        default: true,
+        index: true,
     },
     isArchived: {
         type: Boolean,
@@ -90,6 +92,11 @@ const ProductSchema = new mongoose.Schema({
         images: [String] // Multiple images for this specific variant
     }]
 }, { timestamps: true });
+
+// Indexes for filtering
+ProductSchema.index({ category: 1 });
+ProductSchema.index({ price: 1 });
+ProductSchema.index({ subCategory: 1 });
 
 // Basic Slugify
 ProductSchema.pre('save', function (next) {

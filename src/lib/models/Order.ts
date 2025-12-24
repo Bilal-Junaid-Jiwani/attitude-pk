@@ -44,6 +44,7 @@ const OrderSchema = new mongoose.Schema({
         type: String,
         enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
         default: 'Pending',
+        index: true,
     },
     trackingId: {
         type: String,
@@ -72,6 +73,10 @@ const OrderSchema = new mongoose.Schema({
         default: false,
     },
 }, { timestamps: true });
+
+// Indexes for common queries
+OrderSchema.index({ createdAt: -1 }); // Recent orders
+OrderSchema.index({ user: 1, createdAt: -1 }); // User order history
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema);
 // Force schema refresh

@@ -327,7 +327,7 @@ export default function AdminOrdersPage() {
             {/* Stats Cards - Functioning as Date Filter */}
             {stats && (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-4">
-                    <div className="flex items-center divide-x divide-gray-200 relative">
+                    <div className="flex flex-col md:flex-row md:items-center md:divide-x divide-gray-200 relative gap-4 md:gap-0">
 
                         {/* Interactive Date Indicator */}
                         <div ref={dateMenuRef} className="px-6 py-2 min-w-[160px] relative">
@@ -407,12 +407,14 @@ export default function AdminOrdersPage() {
                         </div>
 
                         {/* Stats Items */}
-                        <StatItem label="Orders" value={stats.today.count} />
-                        <StatItem label="Items ordered" value={stats.today.items} />
-                        <StatItem label="Returns" value={stats.today.returns} />
-                        <StatItem label="Fulfilled" value={stats.today.fulfilled} />
-                        <StatItem label="Delivered" value={stats.today.delivered} />
-                        <StatItem label="Cancelled" value={stats.today.cancelled} isLast />
+                        <div className="flex-1 grid grid-cols-2 md:flex md:divide-x divide-gray-200">
+                            <StatItem label="Orders" value={stats.today.count} />
+                            <StatItem label="Items ordered" value={stats.today.items} />
+                            <StatItem label="Returns" value={stats.today.returns} />
+                            <StatItem label="Fulfilled" value={stats.today.fulfilled} />
+                            <StatItem label="Delivered" value={stats.today.delivered} />
+                            <StatItem label="Cancelled" value={stats.today.cancelled} isLast />
+                        </div>
                     </div>
                 </div>
             )}

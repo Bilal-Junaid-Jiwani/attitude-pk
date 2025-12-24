@@ -146,29 +146,27 @@ export default function CreateOrderPage() {
     const total = subtotal + shipping + tax - discount - couponDiscount;
 
     const handleCreateOrder = async () => {
-        console.log('handleCreateOrder IS CALLED');
-        console.log('Customer State:', customer);
-        console.log('Line Items:', lineItems);
+
 
         if (lineItems.length === 0) {
-            console.log('Validation Failed: No items');
+
             toast.error('Please add at least one product');
             return;
         }
         if (!customer.firstName || !customer.email) {
-            console.log('Validation Failed: Missing Name/Email');
+
             toast.error('Customer name and email are required');
             return;
         }
         if (!customer.address || !customer.city || !customer.phone) {
-            console.log('Validation Failed: Missing Address/City/Phone');
+
             toast.error('Address, City, and Phone are required for shipping');
             return;
         }
 
         setLoading(true);
         try {
-            console.log('Sending request...');
+
             const orderData = {
                 user: selectedCustomerId, // Link the order to the selected customer
                 items: lineItems.map(item => ({
