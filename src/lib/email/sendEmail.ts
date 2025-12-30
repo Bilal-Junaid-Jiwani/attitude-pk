@@ -60,6 +60,11 @@ export const sendOTPEmail = async (to: string, otp: string) => {
     return sendEmail({ to, subject, html });
 };
 
+// Define Base URL strictly for Production vs Dev
+const BASE_URL = process.env.NODE_ENV === 'production'
+    ? 'https://attitude-pk.vercel.app'
+    : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+
 export const sendOrderConfirmationEmail = async (to: string, order: any) => {
     const subject = `Order Confirmation #${order._id.toString().toUpperCase()} - Attitude.pk`;
 
@@ -101,7 +106,7 @@ export const sendOrderConfirmationEmail = async (to: string, order: any) => {
             </div>
 
             <div style="text-align: center; margin-top: 30px;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order._id}/invoice" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">View Invoice</a>
+                <a href="${BASE_URL}/orders/${order._id}/invoice" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">View Invoice</a>
             </div>
         </div>
         <div style="background-color: #f5f5f5; padding: 15px; text-align: center; color: #aaa; font-size: 12px;">
@@ -187,7 +192,7 @@ export const sendOrderShippedEmail = async (to: string, order: any) => {
             </p>
 
             <div style="text-align: center; margin-top: 30px;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order._id}/invoice" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">View Order Invoice</a>
+                <a href="${BASE_URL}/orders/${order._id}/invoice" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">View Order Invoice</a>
             </div>
         </div>
         <div style="background-color: #f5f5f5; padding: 15px; text-align: center; color: #aaa; font-size: 12px;">
@@ -213,7 +218,7 @@ export const sendOrderDeliveredEmail = async (to: string, order: any) => {
             
             <div style="text-align: center; margin: 30px 0;">
                 <p style="margin-bottom: 20px; color: #555;">How was your experience? We'd love to hear your feedback.</p>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/review/${order._id}" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Write a Review</a>
+                <a href="${BASE_URL}/review/${order._id}" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Write a Review</a>
             </div>
 
             <div style="background-color: #f9f9f9; padding: 20px; margin-top: 30px; border-radius: 5px; text-align: center;">
@@ -222,6 +227,5 @@ export const sendOrderDeliveredEmail = async (to: string, order: any) => {
         </div>
     </div>
     `;
-
     return sendEmail({ to, subject, html });
 };
