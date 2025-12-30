@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Loader2 } from 'lucide-react';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -13,6 +13,7 @@ interface ConfirmationModalProps {
     confirmText?: string;
     cancelText?: string;
     variant?: 'danger' | 'warning' | 'info';
+    isLoading?: boolean;
 }
 
 export function ConfirmationModal({
@@ -23,7 +24,8 @@ export function ConfirmationModal({
     onCancel,
     confirmText = 'Confirm',
     cancelText = 'Cancel',
-    variant = 'danger'
+    variant = 'danger',
+    isLoading = false
 }: ConfirmationModalProps) {
     if (!isOpen) return null;
 
@@ -64,17 +66,20 @@ export function ConfirmationModal({
                         <div className="flex gap-3 justify-end">
                             <button
                                 onClick={onCancel}
-                                className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                                disabled={isLoading}
+                                className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
                             >
                                 {cancelText}
                             </button>
                             <button
                                 onClick={onConfirm}
-                                className={`px-5 py-2.5 rounded-lg text-white font-medium shadow-sm transition-colors ${variant === 'danger' ? 'bg-red-600 hover:bg-red-700' :
+                                disabled={isLoading}
+                                className={`px-5 py-2.5 rounded-lg text-white font-medium shadow-sm transition-colors flex items-center gap-2 disabled:opacity-70 ${variant === 'danger' ? 'bg-red-600 hover:bg-red-700' :
                                     variant === 'warning' ? 'bg-amber-600 hover:bg-amber-700' :
                                         'bg-[#1c524f] hover:bg-[#15403d]'
                                     }`}
                             >
+                                {isLoading ? <Loader2 className="animate-spin" size={18} /> : null}
                                 {confirmText}
                             </button>
                         </div>

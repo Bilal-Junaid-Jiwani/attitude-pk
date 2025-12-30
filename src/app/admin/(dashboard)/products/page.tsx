@@ -67,30 +67,42 @@ export default function ProductsPage() {
             return;
         }
 
-        if (action === 'delete') {
-            if (!confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
-        }
+        const executeAction = async () => {
+            try {
+                const res = await fetch('/api/admin/products/bulk', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: selectedIds, action }),
+                });
 
-        try {
-            const res = await fetch('/api/admin/products/bulk', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: selectedIds, action }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                addToast(data.message || 'Action successful', 'success');
-                setSelectedIds([]); // Clear selection
-                setShowMoreActions(false);
-                fetchProducts(); // Refresh list
-            } else {
-                addToast('Failed to perform action', 'error');
+                if (res.ok) {
+                    const data = await res.json();
+                    addToast(data.message || 'Action successful', 'success');
+                    setSelectedIds([]); // Clear selection
+                    setShowMoreActions(false);
+                    fetchProducts(); // Refresh list
+                } else {
+                    addToast('Failed to perform action', 'error');
+                }
+            } catch (error) {
+                console.error('Bulk action error:', error);
+                addToast('An error occurred', 'error');
+            } finally {
+                setModalOpen(false);
             }
-        } catch (error) {
-            console.error('Bulk action error:', error);
-            addToast('An error occurred', 'error');
+        };
+
+        if (action === 'delete') {
+            setModalConfig({
+                title: 'Delete Products',
+                message: `Are you sure you want to delete ${selectedIds.length} products? This action cannot be undone.`,
+                onConfirm: executeAction
+            });
+            setModalOpen(true);
+            return;
         }
+
+        executeAction();
     };
 
     const toggleSelectAll = (checked: boolean) => {

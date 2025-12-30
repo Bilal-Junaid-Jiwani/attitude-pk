@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Save, Truck, DollarSign, Tag, RefreshCcw, Plus, Trash2, X } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 interface SubscribeConfig {
     enabled: boolean;
@@ -199,18 +200,29 @@ export default function SettingsPage() {
         });
     };
 
-    const handleDeleteCoupon = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this coupon?')) return;
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [couponToDelete, setCouponToDelete] = useState<string | null>(null);
+
+    const handleDeleteCouponClick = (id: string) => {
+        setCouponToDelete(id);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDeleteCoupon = async () => {
+        if (!couponToDelete) return;
         try {
-            const res = await fetch(`/api/coupons/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/coupons/${couponToDelete}`, { method: 'DELETE' });
             if (res.ok) {
-                setCoupons(coupons.filter(c => c._id !== id));
+                setCoupons(coupons.filter(c => c._id !== couponToDelete));
                 addToast('Coupon deleted', 'success');
             } else {
                 addToast('Failed to delete coupon', 'error');
             }
         } catch (error) {
             addToast('Failed to delete coupon', 'error');
+        } finally {
+            setDeleteModalOpen(false);
+            setCouponToDelete(null);
         }
     };
 
@@ -448,7 +460,7 @@ export default function SettingsPage() {
                                                     <RefreshCcw size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteCoupon(coupon._id)}
+                                                    onClick={() => handleDeleteCouponClick(coupon._id)}
                                                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                                                 >
                                                     <Trash2 size={18} />
@@ -473,6 +485,14 @@ export default function SettingsPage() {
                     {saving ? 'Saving...' : 'Save All Settings'}
                 </button>
             </div>
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onCancel={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDeleteCoupon}
+                title="Delete Coupon"
+                message="Are you sure you want to delete this coupon? This action cannot be undone."
+                confirmText="Delete Coupon"
+            />
         </div>
     );
 }

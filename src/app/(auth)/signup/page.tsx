@@ -7,7 +7,7 @@ import { Mail, Lock, User, ArrowRight } from 'lucide-react';
 
 export default function SignupPage() {
     const router = useRouter();
-    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', securityCode: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -103,6 +103,8 @@ export default function SignupPage() {
                                 />
                             </div>
                         </div>
+
+
 
                         <button
                             type="submit"

@@ -6,7 +6,9 @@ import Category from '@/lib/models/Category';
 export async function GET() {
     await dbConnect();
     try {
-        const categories = await Category.find({}).sort({ createdAt: -1 });
+        const categories = await Category.find({})
+            .setOptions({ bufferCommands: false })
+            .sort({ createdAt: -1 });
         return NextResponse.json(categories);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

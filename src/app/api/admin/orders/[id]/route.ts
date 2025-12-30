@@ -67,7 +67,22 @@ export async function PUT(
         }
 
         // Update logic
-        if (body.status) order.status = body.status;
+        if (body.status) {
+            // Check if status is changing to 'Delivered'
+            if (body.status === 'Delivered' && order.status !== 'Delivered') {
+                const recipientEmail = order.shippingAddress?.email;
+                if (recipientEmail) {
+                    // Send email asynchronously without blocking the response
+                    console.log(`📧 Triggering delivery email for order ${order._id}...`);
+                    import('@/lib/email/sendEmail').then(({ sendOrderDeliveredEmail }) => {
+                        sendOrderDeliveredEmail(recipientEmail, order)
+                            .then(() => console.log('✅ Delivery email sent'))
+                            .catch(err => console.error('❌ Failed to send delivery email:', err));
+                    });
+                }
+            }
+            order.status = body.status;
+        }
 
         if (typeof body.isPaid === 'boolean') {
             order.isPaid = body.isPaid;

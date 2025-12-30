@@ -199,3 +199,29 @@ export const sendOrderShippedEmail = async (to: string, order: any) => {
     return sendEmail({ to, subject, html });
 };
 
+export const sendOrderDeliveredEmail = async (to: string, order: any) => {
+    const subject = `Your Order #${order._id.toString().toUpperCase()} has been Delivered! - Attitude.pk`;
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+        <div style="background-color: #1c524f; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">Order Delivered! 🎉</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="color: #666; font-size: 16px;">Hi <strong>${order.shippingAddress.fullName}</strong>,</p>
+            <p style="color: #666; line-height: 1.5;">Your order <strong>#${order._id.toString().toUpperCase()}</strong> has been successfully delivered. We hope you love your purchase!</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="margin-bottom: 20px; color: #555;">How was your experience? We'd love to hear your feedback.</p>
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/review/${order._id}" style="display: inline-block; padding: 12px 24px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Write a Review</a>
+            </div>
+
+            <div style="background-color: #f9f9f9; padding: 20px; margin-top: 30px; border-radius: 5px; text-align: center;">
+                 <p style="margin: 0; color: #777; font-size: 14px;"><strong>Thank you for shopping with Attitude.pk!</strong></p>
+            </div>
+        </div>
+    </div>
+    `;
+
+    return sendEmail({ to, subject, html });
+};

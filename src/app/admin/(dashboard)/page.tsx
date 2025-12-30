@@ -183,8 +183,8 @@ const AdminDashboard = () => {
                                     key={opt.val}
                                     onClick={() => applyPreset(opt.val)}
                                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${dateRange === opt.val
-                                            ? 'bg-white text-[#008060] shadow-sm font-bold ring-1 ring-black/5'
-                                            : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                                        ? 'bg-white text-[#008060] shadow-sm font-bold ring-1 ring-black/5'
+                                        : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                                         }`}
                                 >
                                     {opt.label}
@@ -301,7 +301,7 @@ const AdminDashboard = () => {
                                             />
                                             <Tooltip
                                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                                formatter={(val: number) => [`Rs. ${val.toLocaleString()}`, 'Revenue']}
+                                                formatter={(val: any) => [`Rs. ${val.toLocaleString()}`, 'Revenue']}
                                             />
                                             <Area
                                                 type="monotone"

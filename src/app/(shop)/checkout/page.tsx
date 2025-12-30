@@ -46,8 +46,8 @@ export default function CheckoutPage() {
         postalCode: '',
     });
 
-    // Payment Method: COD or Safepay (Card/Bank)
-    const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Safepay'>('COD');
+    // Payment Method: COD, Safepay (Card/Bank), or JazzCash
+    const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Safepay' | 'JazzCash'>('COD');
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
@@ -169,54 +169,56 @@ export default function CheckoutPage() {
         }
     };
 
+    // Helper: Create Pending Order
+    const createPendingOrder = async (method: string) => {
+        let userId = null;
+        try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+                const data = await res.json();
+                userId = data.user._id;
+            }
+        } catch { }
+
+        const orderData = {
+            user: userId,
+            items: cart.map(item => ({
+                product_id: item._id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                subCategory: item.subCategory,
+                imageUrl: item.imageUrl
+            })),
+            shippingAddress: formData,
+            paymentMethod: method,
+            status: 'pending',
+            couponCode: appliedCoupon?.code,
+            discount: appliedCoupon?.amount || 0,
+            subtotal: cartTotal,
+            tax: taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0,
+            shippingCost: cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200),
+            totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)
+        };
+
+        const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Failed to create order');
+        }
+
+        return res.json();
+    };
+
     // Initiate Safepay Payment
     const handleSafepay = async () => {
         try {
-            // 0. Create 'Pending' Order in DB first
-            let userId = null;
-            try {
-                const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const data = await res.json();
-                    userId = data.user._id;
-                }
-            } catch { }
-
-            const orderData = {
-                user: userId,
-                items: cart.map(item => ({
-                    product_id: item._id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    subCategory: item.subCategory,
-                    imageUrl: item.imageUrl
-                })),
-                shippingAddress: formData,
-                paymentMethod: 'Safepay',
-                status: 'pending', // Initial status
-                couponCode: appliedCoupon?.code,
-                discount: appliedCoupon?.amount || 0,
-                subtotal: cartTotal,
-                tax: taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0,
-                shippingCost: cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200),
-                totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)
-            };
-
-            const orderRes = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-            });
-
-            const orderJson = await orderRes.json();
-
-            if (!orderRes.ok) {
-                addToast(orderJson.message || 'Failed to create order', 'error');
-                setLoading(false);
-                return;
-            }
-
+            const orderJson = await createPendingOrder('Safepay');
             const orderId = orderJson.orderId;
 
             // 1. Initialize Safepay Payment Session
@@ -224,25 +226,78 @@ export default function CheckoutPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amount: cartTotal + (cartTotal >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardRate) - (appliedCoupon?.amount || 0), // Use total after discount and shipping
+                    amount: cartTotal + (cartTotal >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardRate) - (appliedCoupon?.amount || 0),
                     currency: 'PKR',
-                    orderId: orderId // Pass orderId so backend can append to redirect
+                    orderId: orderId
                 })
             });
 
             const data = await res.json();
 
             if (res.ok && data.url) {
-                // 2. Redirect User to Hosted Checkout
                 localStorage.setItem('awaitingSafepay', orderId);
                 window.location.href = data.url;
             } else {
                 addToast(data.error || 'Failed to initialize payment', 'error');
                 setLoading(false);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            addToast('Connection error. Please try again.', 'error');
+            addToast(error.message || 'Connection error. Please try again.', 'error');
+            setLoading(false);
+        }
+    };
+
+    // Initiate JazzCash Payment
+    const handleJazzCash = async () => {
+        try {
+            const orderJson = await createPendingOrder('JazzCash');
+            const orderId = orderJson.orderId;
+            const finalAmount = cartTotal + (cartTotal >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardRate) - (appliedCoupon?.amount || 0);
+
+            const res = await fetch('/api/jazzcash/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: finalAmount,
+                    orderId: orderId
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                if (data.mode === 'simulation') {
+                    // Direct redirect for simulation
+                    clearCart();
+                    window.location.href = data.url;
+                } else if (data.fields) {
+                    // POST Form Submit for Production
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = data.url;
+
+                    for (const key in data.fields) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = data.fields[key];
+                        form.appendChild(input);
+                    }
+
+                    document.body.appendChild(form);
+                    form.submit();
+                } else {
+                    addToast('Invalid response from payment server', 'error');
+                    setLoading(false);
+                }
+            } else {
+                addToast(data.error || 'Failed to initialize JazzCash payment', 'error');
+                setLoading(false);
+            }
+        } catch (error: any) {
+            console.error(error);
+            addToast(error.message || 'Connection error', 'error');
             setLoading(false);
         }
     };
@@ -252,10 +307,10 @@ export default function CheckoutPage() {
         e.preventDefault();
         setLoading(true);
 
-        // Basic validation already handled by 'required' attributes on inputs
-
         if (paymentMethod === 'Safepay') {
             await handleSafepay();
+        } else if (paymentMethod === 'JazzCash') {
+            await handleJazzCash();
         } else {
             await placeCODOrder();
         }
@@ -426,28 +481,35 @@ export default function CheckoutPage() {
                                     </span>
                                 </label>
 
-                                <label
-                                    className={`flex flex-col p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'Safepay' ? 'border-[#1c524f] bg-white ring-1 ring-[#1c524f]' : 'border-gray-200 hover:border-[#1c524f]/50'}`}
-                                    onClick={() => setPaymentMethod('Safepay')}
-                                >
-                                    <div className="flex items-center justify-between w-full">
-                                        <span className="flex items-center gap-3 font-bold text-gray-900">
-                                            <span className={`w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center ${paymentMethod === 'Safepay' ? 'border-[#1c524f]' : ''}`}>
-                                                {paymentMethod === 'Safepay' && <div className="w-3 h-3 bg-[#1c524f] rounded-full" />}
+                                <div className="relative opacity-60 cursor-not-allowed">
+                                    <div className="flex flex-col p-4 border border-gray-200 rounded-xl bg-gray-50">
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="flex items-center gap-3 font-bold text-gray-500">
+                                                <span className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center"></span>
+                                                Pay with Safepay
                                             </span>
-                                            Pay with Safepay
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            <Lock size={16} className="text-[#1c524f]" />
-                                            <span className="text-xs text-gray-500 font-medium">Secured by Safepay</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Coming Soon</span>
+                                                <Lock size={16} className="text-gray-400" />
+                                            </div>
                                         </div>
                                     </div>
-                                    {paymentMethod === 'Safepay' && (
-                                        <p className="pl-8 pt-2 text-sm text-gray-500">
-                                            You will be redirected to Safepay's secure payment page to complete your purchase using your Credit/Debit Card or Bank Account.
-                                        </p>
-                                    )}
-                                </label>
+                                </div>
+
+                                <div className="relative opacity-60 cursor-not-allowed">
+                                    <div className="flex flex-col p-4 border border-gray-200 rounded-xl bg-gray-50">
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="flex items-center gap-3 font-bold text-gray-500">
+                                                <span className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center"></span>
+                                                Pay with JazzCash
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Coming Soon</span>
+                                                <Lock size={16} className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -586,7 +648,7 @@ export default function CheckoutPage() {
                                 className="w-full mt-8 bg-[#1c524f] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#153e3c] transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {loading && <Loader2 className="animate-spin" />}
-                                {loading ? 'Processing...' : (paymentMethod === 'Safepay' ? 'Proceed to Pay' : 'Place Order')}
+                                {loading ? 'Processing...' : (paymentMethod === 'Safepay' || paymentMethod === 'JazzCash' ? 'Proceed to Pay' : 'Place Order')}
                             </button>
 
                             <p className="text-xs text-center text-gray-400 mt-4">

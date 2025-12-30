@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, X, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 interface Category { _id: string; name: string; subCategories: { name: string }[] }
 interface Fragrance { _id: string; name: string }
@@ -195,8 +196,13 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
         }
     };
 
-    const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this product?')) return;
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    const handleDeleteClick = () => {
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
         setDeleting(true);
         try {
             const res = await fetch(`/api/admin/products/${initialData._id}`, {
@@ -212,6 +218,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             addToast('Error deleting product', 'error');
         } finally {
             setDeleting(false);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -237,6 +244,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                         <div className="flex gap-2">
                             <input
                                 type="text"
+                                id={`variant-image-input-${currentVariant.id}`}
                                 placeholder="Paste Image URL"
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                 onKeyDown={(e) => {
@@ -253,6 +261,22 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                     }
                                 }}
                             />
+                            <button
+                                onClick={() => {
+                                    const input = document.getElementById(`variant-image-input-${currentVariant.id}`) as HTMLInputElement;
+                                    if (input && input.value) {
+                                        const val = input.value;
+                                        updateVariant(currentVariant.id, 'images', [...currentVariant.images, val]);
+                                        if (!currentVariant.imageUrl) {
+                                            updateVariant(currentVariant.id, 'imageUrl', val);
+                                        }
+                                        input.value = '';
+                                    }
+                                }}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200"
+                            >
+                                Add
+                            </button>
                         </div>
 
                         {/* Grid */}
@@ -321,7 +345,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
                 {isEdit && (
                     <button
-                        onClick={handleDelete}
+                        onClick={handleDeleteClick}
                         disabled={deleting}
                         className="px-3 py-2 bg-red-50 text-red-600 text-sm font-medium rounded hover:bg-red-100 border border-red-200 flex items-center gap-2"
                     >
@@ -514,7 +538,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                         className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                         placeholder="0.00"
                                         value={formData.price}
-                                        onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                                        onChange={e => {
+                                            const val = parseFloat(e.target.value);
+                                            setFormData({ ...formData, price: isNaN(val) ? 0 : val });
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -527,7 +554,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                         className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                         placeholder="0.00"
                                         value={formData.compareAtPrice || ''}
-                                        onChange={e => setFormData({ ...formData, compareAtPrice: parseFloat(e.target.value) })}
+                                        onChange={e => {
+                                            const val = parseFloat(e.target.value);
+                                            setFormData({ ...formData, compareAtPrice: isNaN(val) ? 0 : val });
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -546,7 +576,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                         className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                         placeholder="0.00"
                                         value={formData.costPerItem || ''}
-                                        onChange={e => setFormData({ ...formData, costPerItem: parseFloat(e.target.value) })}
+                                        onChange={e => {
+                                            const val = parseFloat(e.target.value);
+                                            setFormData({ ...formData, costPerItem: isNaN(val) ? 0 : val });
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -589,7 +622,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                 type="number"
                                 className="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                 value={formData.stock}
-                                onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                                onChange={e => {
+                                    const val = parseInt(e.target.value);
+                                    setFormData({ ...formData, stock: isNaN(val) ? 0 : val });
+                                }}
                             />
                         </div>
                     </div>
@@ -662,7 +698,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                                             type="number"
                                                             className="w-20 border rounded px-2 py-1 outline-none focus:border-blue-500"
                                                             value={v.price}
-                                                            onChange={e => updateVariant(v.id, 'price', e.target.value)}
+                                                            onChange={e => {
+                                                                const val = parseFloat(e.target.value);
+                                                                updateVariant(v.id, 'price', isNaN(val) ? 0 : val);
+                                                            }}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2">
@@ -670,7 +709,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                                                             type="number"
                                                             className="w-20 border rounded px-2 py-1 outline-none focus:border-blue-500"
                                                             value={v.stock}
-                                                            onChange={e => updateVariant(v.id, 'stock', e.target.value)}
+                                                            onChange={e => {
+                                                                const val = parseInt(e.target.value);
+                                                                updateVariant(v.id, 'stock', isNaN(val) ? 0 : val);
+                                                            }}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2">
@@ -746,12 +788,36 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                             <select
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                 value={formData.category}
-                                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                onChange={e => setFormData({
+                                    ...formData,
+                                    category: e.target.value,
+                                    subCategory: '' // Reset subcategory when category changes
+                                })}
                             >
                                 <option value="">Select Category</option>
                                 {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                             </select>
                         </div>
+
+                        {/* Sub Category Dropdown */}
+                        {formData.category && (
+                            <div className="mb-4">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Sub Category</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                    value={formData.subCategory}
+                                    onChange={e => setFormData({ ...formData, subCategory: e.target.value })}
+                                >
+                                    <option value="">Select Sub Category</option>
+                                    {categories
+                                        .find(c => c._id === formData.category)
+                                        ?.subCategories?.map((sub, idx) => (
+                                            <option key={idx} value={sub.name}>{sub.name}</option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+                        )}
 
                         <div className="mb-4">
                             <label className="block text-xs font-medium text-gray-700 mb-1">Format</label>
@@ -809,6 +875,15 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     {loading ? 'Saving...' : 'Save'}
                 </button>
             </div>
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Product"
+                message="Are you sure you want to delete this product? This action cannot be undone."
+                isLoading={deleting}
+                confirmText="Delete Product"
+            />
         </div>
     );
 }

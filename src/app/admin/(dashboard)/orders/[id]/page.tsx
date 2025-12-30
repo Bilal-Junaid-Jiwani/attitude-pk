@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer, MoreHorizontal, MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Printer, MoreHorizontal, MapPin, Mail, Phone, ExternalLink, ShieldCheck } from 'lucide-react';
 import CoolLoader from '@/components/ui/CoolLoader';
 import { toast } from 'react-hot-toast';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 export default function OrderDetailPage() {
     const { id } = useParams();
@@ -136,8 +137,13 @@ export default function OrderDetailPage() {
         }
     };
 
-    const handleDeleteOrder = async () => {
-        if (!confirm('Are you sure you want to delete this order PERMANENTLY?')) return;
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    const handleDeleteClick = () => {
+        setIsDeleteModalOpen(true);
+    }
+
+    const confirmDeleteOrder = async () => {
         setUpdating(true);
         try {
             const res = await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' });
@@ -147,6 +153,7 @@ export default function OrderDetailPage() {
         } catch (error) {
             toast.error('Failed to delete order');
             setUpdating(false);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -158,7 +165,7 @@ export default function OrderDetailPage() {
     if (!order) return <div className="p-8 text-center">Order not found</div>;
 
     // Derived logic
-    const isPaid = order.isPaid || order.paymentMethod === 'Card' || order.paymentMethod === 'Safepay' || order.status === 'Delivered';
+    const isPaid = order.isPaid;
     const isFulfilled = order.status === 'Shipped' || order.status === 'Delivered';
     const isArchived = order.isArchived;
 
@@ -219,7 +226,7 @@ export default function OrderDetailPage() {
                                     Uncancel Order
                                 </button>
                                 <button
-                                    onClick={handleDeleteOrder}
+                                    onClick={handleDeleteClick}
                                     disabled={updating}
                                     className="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
                                 >
@@ -370,6 +377,18 @@ export default function OrderDetailPage() {
                                     </button>
                                 )}
                             </div>
+
+                            {(order.paymentMethod === 'Card' || order.paymentMethod === 'Safepay') && (
+                                <div className="mt-4 bg-[#f0fdf4] border border-green-200 rounded-lg p-3 flex items-start gap-3">
+                                    <ShieldCheck size={18} className="text-green-600 mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-bold text-green-800">Payment Confirmed</p>
+                                        <p className="text-xs text-green-700 mt-0.5">
+                                            This order was placed using <strong>{order.paymentMethod}</strong>. The payment has been securely processed and verified.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -583,7 +602,9 @@ export default function OrderDetailPage() {
                         <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
-                        <h2 className="text-xl font-bold text-[#1c524f]">Attitude.pk</h2>
+                        <h2 className="text-xl font-bold text-[#1c524f]">
+                            ATTITUDE <span className="text-sm ml-0.5">PK</span>
+                        </h2>
                         <p className="text-sm text-gray-600">Head Office: D-22/1, Block-17, Gulshan-e-Iqbal, Karachi-75300, Pakistan</p>
                         <p className="text-sm text-gray-600">attitudelivingpk@gmail.com</p>
                     </div>
@@ -667,6 +688,15 @@ export default function OrderDetailPage() {
                     <p>For any questions, please contact our support at attitudelivingpk@gmail.com</p>
                 </div>
             </div>
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDeleteOrder}
+                title="Delete Order"
+                message="Are you sure you want to delete this order PERMANENTLY? This action cannot be undone."
+                isLoading={updating}
+                confirmText="Delete Order"
+            />
         </>
     );
 }

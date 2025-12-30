@@ -31,8 +31,8 @@ export async function GET(req: Request) {
         }
 
         const user = await User.findById(userId);
-        if (!user || user.role !== 'admin') {
-            return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
+        if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
+            return NextResponse.json({ error: 'Forbidden: Admins/Staff only' }, { status: 403 });
         }
 
         // 2. Parse Date Filter
@@ -129,8 +129,8 @@ export async function POST(req: Request) {
         }
 
         const user = await User.findById(userId);
-        if (!user || user.role !== 'admin') {
-            return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
+        if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
+            return NextResponse.json({ error: 'Forbidden: Admins/Staff only' }, { status: 403 });
         }
 
         // 2. Create Order

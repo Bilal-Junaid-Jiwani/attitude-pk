@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings, LogOut, ListOrdered, Droplets, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings, LogOut, ListOrdered, Droplets, Scale, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -21,10 +21,12 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileOpen, closeMobile }: Side
         { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
         { name: 'Products', icon: Package, href: '/admin/products' },
         { name: 'Customers', icon: Users, href: '/admin/customers' },
+        { name: 'Reviews', icon: Star, href: '/admin/reviews' },
         { name: 'Categories', icon: ListOrdered, href: '/admin/categories' },
         { name: 'Fragrances', icon: Droplets, href: '/admin/fragrances' },
         { name: 'Formats', icon: Scale, href: '/admin/formats' },
         { name: 'Settings', icon: Settings, href: '/admin/settings' },
+        { name: 'Staff Management', icon: Users, href: '/admin/staff' }, // Changed Icon manually if needed, Users is fine or Shield
     ];
 
     return (
@@ -52,7 +54,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileOpen, closeMobile }: Side
                 <div className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {(!isCollapsed || isMobileOpen) && (
                         <h1 className="text-xl font-bold whitespace-nowrap text-gray-800">
-                            ATTITUDE <span className="text-[#1c524f] hover:text-[#153e3c] transition-colors cursor-pointer">PK</span>
+                            ATTITUDE <span className="text-[#1c524f] hover:text-[#153e3c] transition-colors cursor-pointer text-sm ml-0.5">PK</span>
                         </h1>
                     )}
 
@@ -98,6 +100,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileOpen, closeMobile }: Side
                 {/* Logout */}
                 <div className="p-4 mt-auto border-t border-gray-100">
                     <button
+                        onClick={async () => {
+                            try {
+                                await fetch('/api/auth/logout', { method: 'POST' });
+                                window.location.href = '/admin/login';
+                            } catch (error) {
+                                console.error('Logout failed', error);
+                            }
+                        }}
                         className={`flex items-center gap-3 px-3 py-3 w-full text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all text-sm font-medium ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
                         title={isCollapsed && !isMobileOpen ? "Logout" : ""}
                     >

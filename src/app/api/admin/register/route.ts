@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db/connect';
 import User from '@/lib/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
     try {
@@ -10,9 +11,14 @@ export async function POST(req: Request) {
         const { name, email, password, adminCode } = await req.json();
 
         // 1. Verify Secret Code
-        if (adminCode !== '0308') {
+        // 1. Verify Secret Code
+        const submittedCode = adminCode?.trim();
+        const correctCode = process.env.ADMIN_SECURITY_CODE?.trim();
+
+        if (submittedCode !== correctCode) {
+            console.error(`Register Failed: Invalid Code. Received: '${submittedCode}', Expected: '${correctCode ? 'SET' : 'NOT_SET'}'`);
             return NextResponse.json(
-                { error: 'Invalid Access Code. Ask a manager for the code.' },
+                { error: `Invalid Access Code. Debug: Rec='${submittedCode}', Exp='${correctCode ? 'SET' : 'NOT_SET'}'` },
                 { status: 403 }
             );
         }
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
             name,
             email,
             password: hashedPassword,
-            role: 'admin', // Force Admin Role
+            role: 'admin', // Force Admin Role (Everyone is Admin request)
         });
 
         // 5. Generate Token
@@ -59,7 +65,8 @@ export async function POST(req: Request) {
             token,
         }, { status: 201 });
 
-        response.cookies.set('token', token, {
+        const cookieStore = await cookies();
+        cookieStore.set('admin_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',

@@ -21,7 +21,7 @@ export default function Navbar() {
 
         {/* 2. Logo */}
         <Link href="/" className="text-2xl font-bold tracking-tight uppercase">
-          Attitude<span className="text-[#1c524f]">PK</span>
+          Attitude<span className="text-[#1c524f] text-sm ml-0.5">PK</span>
         </Link>
 
         {/* 3. Desktop Navigation */}

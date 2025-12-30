@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         await dbConnect();
 
         const body = await req.json();
-        const { name, email, password } = body;
+        const { name, email, password, securityCode } = body;
 
         // 1. Validation
         if (!name || !email || !password) {
@@ -35,11 +35,19 @@ export async function POST(req: Request) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // 5. Create user (Unverified)
+        // 5. Determine Role based on Security Code
+        let role = 'user';
+        if (securityCode && securityCode === process.env.ADMIN_SECURITY_CODE) {
+            role = 'admin'; // Or 'staff'
+            console.log('🛡️ Creating Admin/Staff User via Security Code');
+        }
+
+        // 6. Create user (Unverified)
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
+            role, // Set role here
             otp,
             otpExpires,
             isVerified: false,

@@ -11,15 +11,17 @@ export async function POST(req: Request) {
         const { email, password } = await req.json();
 
         // 1. Validation
-        if (!email || !password) {
+        if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
             return NextResponse.json(
-                { error: 'Please provide email and password' },
+                { error: 'Please provide valid email and password' },
                 { status: 400 }
             );
         }
 
         // 2. Check for user
-        const user = await User.findOne({ email }).select('+password');
+        const user = await User.findOne({ email })
+            .setOptions({ bufferCommands: false }) // Fail fast if no connection
+            .select('+password');
         if (!user) {
             return NextResponse.json(
                 { error: 'Invalid credentials' },
@@ -36,10 +38,14 @@ export async function POST(req: Request) {
             );
         }
 
-        // 4. Generate Token
+        // Update lastLogin
+        user.lastLogin = new Date();
+        await user.save();
+
+        // 4. Generate Token (24 Hours Expiry)
         const secret = process.env.JWT_SECRET || 'fallback_secret_key_change_me';
         const token = jwt.sign({ id: user._id, role: user.role }, secret, {
-            expiresIn: '30d',
+            expiresIn: '24h',
         });
 
         // 5. Response
@@ -55,7 +61,7 @@ export async function POST(req: Request) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 30 * 24 * 60 * 60, // 30 days
+            maxAge: 24 * 60 * 60, // 24 hours
             path: '/',
         });
 

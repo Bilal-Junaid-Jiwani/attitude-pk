@@ -1,7 +1,7 @@
 export const NAV_LINKS = [
   {
     label: 'TRENDING',
-    href: '/collections/trending',
+    href: '/trending',
     isDropdown: false
   },
   {

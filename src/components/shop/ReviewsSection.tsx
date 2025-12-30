@@ -19,7 +19,7 @@ interface Review {
 
 
 
-export default function ReviewsSection() {
+export default function ReviewsSection({ productId }: { productId?: string }) {
     const router = useRouter();
     const { addToast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -36,7 +36,8 @@ export default function ReviewsSection() {
     // Fetch Reviews
     const fetchReviews = async () => {
         try {
-            const res = await fetch('/api/reviews');
+            const url = productId ? `/api/reviews?productId=${productId}` : '/api/reviews';
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
                 const formattedReviews = data.map((r: any) => ({
@@ -122,7 +123,8 @@ export default function ReviewsSection() {
                 body: JSON.stringify({
                     rating: data.rating,
                     title: data.title,
-                    review: data.body // API expects 'review' key for body
+                    review: data.body, // API expects 'review' key for body
+                    productId // Include productId explicitly
                 }),
             });
 
@@ -145,14 +147,19 @@ export default function ReviewsSection() {
             {/* Top Summary Header */}
             <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
                 <div className="flex items-center gap-4">
-                    <span className="text-5xl font-heading font-medium text-[#1c524f]">4.9</span>
+                    <span className="text-5xl font-heading font-medium text-[#1c524f]">
+                        {reviews.length > 0
+                            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                            : "5.0"
+                        }
+                    </span>
                     <div className="flex flex-col">
                         <div className="flex text-[#1c524f] mb-1">
                             {[...Array(5)].map((_, i) => (
                                 <Star key={i} size={18} fill="currentColor" />
                             ))}
                         </div>
-                        <span className="text-sm text-gray-500">Based on 324 reviews</span>
+                        <span className="text-sm text-gray-500">Based on {reviews.length} reviews</span>
                     </div>
                 </div>
 

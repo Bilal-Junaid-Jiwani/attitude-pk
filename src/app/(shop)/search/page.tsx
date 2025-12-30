@@ -19,7 +19,9 @@ interface Product {
     stock: number;
 }
 
-export default function SearchPage() {
+import { Suspense } from 'react';
+
+function SearchContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get('q') || '';
 
@@ -144,5 +146,13 @@ export default function SearchPage() {
                 )}
             </div>
         </section>
+    );
+}
+
+export default function SearchPage() {
+    return (
+        <Suspense fallback={<CoolLoader />}>
+            <SearchContent />
+        </Suspense>
     );
 }

@@ -12,6 +12,7 @@ export interface Product {
     price: number;
     compareAtPrice?: number;
     imageUrl: string;
+    images?: string[];
     category?: { name: string };
     subCategory?: string;
     stock: number;
@@ -19,6 +20,7 @@ export interface Product {
 
 const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();
+    const secondImage = product.images?.[1];
 
     const hasDiscount = (product.compareAtPrice || 0) > product.price;
     const discountPercentage = hasDiscount
@@ -30,9 +32,9 @@ const ProductCard = ({ product }: { product: Product }) => {
         : 0;
 
     return (
-        <div className="group flex flex-col items-center text-center bg-white p-4 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 animate-in fade-in zoom-in duration-500 relative border border-transparent hover:border-gray-100">
+        <div className="group flex flex-col items-center text-center bg-white p-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 animate-in fade-in zoom-in duration-500 relative border border-transparent hover:border-gray-100">
             {/* Badges */}
-            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 items-start">
+            <div className="absolute top-3 left-3 z-10 flex flex-col gap-2 items-start">
                 {product.stock < 5 && product.stock > 0 && (
                     <span className="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm border border-red-100 shadow-sm">
                         Low Stock
@@ -51,52 +53,65 @@ const ProductCard = ({ product }: { product: Product }) => {
             </div>
 
             {/* Image Area */}
-            <Link href={`/product/${product._id}`} className="block relative aspect-[3/4] w-full mb-4 overflow-hidden bg-transparent rounded-lg cursor-pointer">
+            <Link href={`/product/${product._id}`} className="block relative aspect-[4/5] w-full mb-3 overflow-hidden bg-transparent rounded-lg cursor-pointer">
+                {/* Main Image */}
                 <Image
                     src={product.imageUrl}
                     alt={product.name}
                     fill
-                    className="object-contain transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    className={`object-contain transition-all duration-700 group-hover:scale-105 ${secondImage ? 'group-hover:opacity-0' : ''}`}
                 />
+
+                {/* Second Image (Hover) */}
+                {secondImage && (
+                    <Image
+                        src={secondImage}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        className="absolute inset-0 object-contain transition-all duration-700 group-hover:scale-105 opacity-0 group-hover:opacity-100"
+                    />
+                )}
             </Link>
 
             {/* Details */}
             <div className="flex-1 w-full flex flex-col items-center">
-                <h3 className="font-heading font-bold text-gray-900 text-lg mb-1 line-clamp-1 group-hover:text-[#1c524f] transition-colors">
+                <h3 className="font-heading font-bold text-gray-900 text-base mb-1 line-clamp-1 group-hover:text-[#1c524f] transition-colors">
                     <Link href={`/product/${product._id}`}>
                         {product.name}
                     </Link>
                 </h3>
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1.5">
                     {product.subCategory || product.category?.name}
                 </p>
 
                 {/* Stars */}
-                <div className="flex items-center gap-1.5 mb-3">
+                <div className="flex items-center gap-1.5 mb-2">
                     <div className="flex text-[#1c524f]">
                         {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={14} fill="currentColor" className="text-[#1c524f]" />
+                            <Star key={i} size={12} fill="currentColor" className="text-[#1c524f]" />
                         ))}
                     </div>
                     {/* Deterministic fake review count based on ID to avoid hydration mismatch */}
-                    <span className="text-xs text-gray-400 font-medium">
+                    <span className="text-[10px] text-gray-400 font-medium">
                         ({(product._id.charCodeAt(product._id.length - 1) * 3) + 50})
                     </span>
                 </div>
 
                 {/* Price Display */}
-                <div className="mb-4 h-8 flex items-center justify-center gap-2">
+                <div className="mb-3 h-6 flex items-center justify-center gap-2">
                     {hasDiscount ? (
                         <>
-                            <span className="text-gray-400 line-through text-sm font-medium">
+                            <span className="text-gray-400 line-through text-xs font-medium">
                                 Rs. {product.compareAtPrice!.toLocaleString()}
                             </span>
-                            <span className="text-[#d72c0d] font-bold text-lg">
+                            <span className="text-[#d72c0d] font-bold text-base">
                                 Rs. {product.price.toLocaleString()}
                             </span>
                         </>
                     ) : (
-                        <span className="font-bold text-[#1c524f] text-lg">
+                        <span className="font-bold text-[#1c524f] text-base">
                             Rs. {product.price.toLocaleString()}
                         </span>
                     )}
@@ -114,9 +129,9 @@ const ProductCard = ({ product }: { product: Product }) => {
                             subCategory: product.subCategory
                         })}
                         disabled={product.stock === 0}
-                        className="w-full bg-[#1c524f] text-white py-3 px-4 rounded-sm font-bold text-sm tracking-wide hover:bg-[#153e3c] transition-all shadow-sm hover:shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group-hover:translate-y-0 translate-y-0"
+                        className="w-full bg-[#1c524f] text-white py-2.5 px-3 rounded-sm font-bold text-xs tracking-wide hover:bg-[#153e3c] transition-all shadow-sm hover:shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group-hover:translate-y-0 translate-y-0"
                     >
-                        <ShoppingCart size={16} />
+                        <ShoppingCart size={14} />
                         <span>{product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}</span>
                     </button>
                 </div>

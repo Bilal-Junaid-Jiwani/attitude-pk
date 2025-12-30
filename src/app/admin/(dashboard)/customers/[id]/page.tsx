@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Mail, Phone, MapPin, ExternalLink, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import CoolLoader from '@/components/ui/CoolLoader';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 interface Order {
     _id: string;
@@ -38,6 +39,8 @@ export default function CustomerDetailPage() {
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         fetchCustomerData();
@@ -69,10 +72,8 @@ export default function CustomerDetailPage() {
     const averageOrderValue = orders.length > 0 ? totalSpent / orders.length : 0;
     const lastOrder = orders[0]; // Sorted by date desc in API
 
-
-    const handleDeleteCustomer = async () => {
+    const handleDeleteClick = () => {
         if (!customer) return;
-        if (!confirm('Are you sure you want to delete this customer? This cannot be undone.')) return;
 
         // Check if guest
         if (customer.type === 'Guest') {
@@ -80,7 +81,11 @@ export default function CustomerDetailPage() {
             return;
         }
 
-        setLoading(true); // Re-use loading or add deleting state. Let's add local deleting state.
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteCustomer = async () => {
+        setDeleting(true);
 
         try {
             const res = await fetch(`/api/admin/customers/${id}`, {
@@ -97,7 +102,9 @@ export default function CustomerDetailPage() {
         } catch (error: any) {
             console.error(error);
             addToast(error.message || 'Failed to delete customer', 'error');
-            setLoading(false);
+            setIsDeleteModalOpen(false);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -272,14 +279,24 @@ export default function CustomerDetailPage() {
                     </div>
 
                     <button
-                        onClick={handleDeleteCustomer}
-                        disabled={loading}
+                        onClick={handleDeleteClick}
+                        disabled={loading || deleting}
                         className="w-full text-left text-red-600 text-sm font-medium p-2 hover:bg-red-50 rounded flex items-center gap-2 disabled:opacity-50"
                     >
-                        <Trash2 size={16} /> {loading ? 'Deleting...' : 'Delete customer'}
+                        <Trash2 size={16} /> {deleting ? 'Deleting...' : 'Delete customer'}
                     </button>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDeleteCustomer}
+                title="Delete Customer"
+                message="Are you sure you want to delete this customer? This cannot be undone."
+                isLoading={deleting}
+                confirmText="Delete Customer"
+            />
         </div>
     );
 }

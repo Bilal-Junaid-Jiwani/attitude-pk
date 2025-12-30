@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import dbConnect from '@/lib/db/connect';
 import ProductModel from '@/lib/models/Product';
 // These two imports are required for Mongoose to register schemas
-import '@/lib/models/Category'; // Ensure models are registered
-import '@/lib/models/Fragrance';
-import '@/lib/models/Format';
+import Category from '@/lib/models/Category';
+import Fragrance from '@/lib/models/Fragrance';
+import Format from '@/lib/models/Format';
 //
 import ProductDetails from '@/components/shop/ProductDetails';
 import { Product } from '@/types/product';
@@ -17,7 +17,14 @@ interface Props {
 async function getProduct(id: string): Promise<Product | null> {
     await dbConnect();
     try {
-        const product = await ProductModel.findById(id).populate('category fragrance format variants.fragrance variants.format').lean();
+        const product = await ProductModel.findById(id)
+            .setOptions({ strictPopulate: false })
+            .populate({ path: 'category', select: 'name', model: Category, strictPopulate: false })
+            .populate({ path: 'fragrance', select: 'name', model: Fragrance, strictPopulate: false })
+            .populate({ path: 'format', select: 'name', model: Format, strictPopulate: false })
+            .populate({ path: 'variants.fragrance', select: 'name', model: Fragrance, strictPopulate: false })
+            .populate({ path: 'variants.format', select: 'name', model: Format, strictPopulate: false })
+            .lean();
         if (!product) return null;
         return JSON.parse(JSON.stringify(product)); // Serialize for client component
     } catch (error) {

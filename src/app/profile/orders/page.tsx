@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Package, Clock, ShoppingBag, FileText } from 'lucide-react';
+import { Package, Clock, ShoppingBag, FileText, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ReviewFormModal from '@/components/shop/ReviewFormModal';
+import { useToast } from '@/components/ui/ToastProvider';
 
 interface OrderItem {
     product_id: string;
@@ -28,6 +30,11 @@ export default function OrderHistoryPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const { addToast } = useToast();
+
+    // Review Modal State
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [reviewProducts, setReviewProducts] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -48,6 +55,36 @@ export default function OrderHistoryPage() {
 
         fetchOrders();
     }, [router]);
+
+    const handleOpenReview = (order: Order) => {
+        const products = order.items.map(item => ({
+            id: item.product_id,
+            name: item.name
+        }));
+        setReviewProducts(products);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleReviewSubmit = async (data: { rating: number; title: string; body: string; productId?: string }) => {
+        try {
+            const res = await fetch('/api/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+                addToast('Review submitted successfully!', 'success');
+                setIsReviewModalOpen(false);
+            } else {
+                const err = await res.json();
+                addToast(err.error || 'Failed to submit review', 'error');
+            }
+        } catch (error) {
+            console.error('Review error:', error);
+            addToast('Something went wrong', 'error');
+        }
+    };
 
     if (loading) {
         return (
@@ -113,6 +150,16 @@ export default function OrderHistoryPage() {
                                             <FileText size={14} />
                                             Invoice
                                         </Link>
+
+                                        {order.status === 'Delivered' && (
+                                            <button
+                                                onClick={() => handleOpenReview(order)}
+                                                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1c524f] text-white rounded-xl text-xs font-bold hover:bg-[#153e3c] shadow-lg shadow-[#1c524f]/20 transition-all"
+                                            >
+                                                <Star size={14} />
+                                                Write a Review
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -177,6 +224,12 @@ export default function OrderHistoryPage() {
                     </div>
                 )}
             </div>
+            <ReviewFormModal
+                isOpen={isReviewModalOpen}
+                onClose={() => setIsReviewModalOpen(false)}
+                onSubmit={handleReviewSubmit}
+                products={reviewProducts}
+            />
         </div>
     );
 }

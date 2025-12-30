@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/connect';
 import Product from '@/lib/models/Product';
-import '@/lib/models/Category';
-import '@/lib/models/Fragrance';
-import '@/lib/models/Format';
+import Category from '@/lib/models/Category';
+import Fragrance from '@/lib/models/Fragrance';
+import Format from '@/lib/models/Format';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     await dbConnect();
     const { id } = await params;
     try {
         const product = await Product.findById(id)
-            .populate('category')
-            .populate('fragrance')
-            .populate('format');
+            .setOptions({ bufferCommands: false, strictPopulate: false })
+            .populate({ path: 'category', select: 'name', model: Category, strictPopulate: false })
+            .populate({ path: 'fragrance', select: 'name', model: Fragrance, strictPopulate: false })
+            .populate({ path: 'format', select: 'name', model: Format, strictPopulate: false });
 
         if (!product) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });

@@ -6,7 +6,9 @@ import Fragrance from '@/lib/models/Fragrance';
 export async function GET() {
     await dbConnect();
     try {
-        const fragrances = await Fragrance.find({}).sort({ createdAt: -1 });
+        const fragrances = await Fragrance.find({})
+            .setOptions({ bufferCommands: false })
+            .sort({ createdAt: -1 });
         return NextResponse.json(fragrances);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

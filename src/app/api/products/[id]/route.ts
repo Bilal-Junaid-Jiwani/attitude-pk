@@ -18,18 +18,21 @@ export async function GET(
         const { id } = await params;
 
         const product = await Product.findById(id)
-            .populate('category', 'name')
-            .populate('fragrance', 'name')
-            .populate('format', 'name')
+            .setOptions({ strictPopulate: false })
+            .populate({ path: 'category', select: 'name', model: Category, strictPopulate: false })
+            .populate({ path: 'fragrance', select: 'name', model: Fragrance, strictPopulate: false })
+            .populate({ path: 'format', select: 'name', model: Format, strictPopulate: false })
             .populate({
                 path: 'variants.fragrance',
-                model: 'Fragrance',
-                select: 'name'
+                model: Fragrance,
+                select: 'name',
+                strictPopulate: false
             })
             .populate({
                 path: 'variants.format',
-                model: 'Format',
-                select: 'name'
+                model: Format,
+                select: 'name',
+                strictPopulate: false
             });
 
         if (!product) {

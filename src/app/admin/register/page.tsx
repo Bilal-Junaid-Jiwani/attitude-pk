@@ -32,11 +32,11 @@ export default function AdminRegisterPage() {
                 throw new Error(data.error || 'Registration failed');
             }
 
-            // Success -> Redirect to dashboard
-            router.push('/admin');
+            // Success -> Redirect to dashboard (Force reload to update cookies)
+            window.location.href = '/admin';
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred');
         } finally {
             setLoading(false);
         }
@@ -53,7 +53,7 @@ export default function AdminRegisterPage() {
                             <ShieldPlus size={28} className="text-white" />
                         </div>
                         <h1 className="text-xl font-bold text-white tracking-wide">Join Staff</h1>
-                        <p className="text-green-100 text-xs mt-1 font-medium">Create New Administrator Account</p>
+                        <p className="text-green-100 text-xs mt-1 font-medium">Create New Administrator Account (v2.0)</p>
                     </div>
                 </div>
 

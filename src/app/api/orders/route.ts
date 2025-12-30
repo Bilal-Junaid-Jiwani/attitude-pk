@@ -43,6 +43,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { user, items, totalAmount, shippingAddress, paymentMethod, subtotal, shippingCost, tax, discount, couponCode } = body;
 
+
         // Basic validation
         if (!items || items.length === 0) {
             return NextResponse.json({ message: 'No items in order' }, { status: 400 });

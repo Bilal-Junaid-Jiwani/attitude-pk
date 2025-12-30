@@ -7,23 +7,33 @@ import { Star, X } from 'lucide-react';
 interface ReviewFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: { rating: number; title: string; body: string }) => void;
+    onSubmit: (data: { rating: number; title: string; body: string; productId?: string; name?: string }) => void;
+    products?: { id: string; name: string }[];
+    showNameInput?: boolean;
 }
 
-export default function ReviewFormModal({ isOpen, onClose, onSubmit }: ReviewFormModalProps) {
+export default function ReviewFormModal({ isOpen, onClose, onSubmit, products, showNameInput = false }: ReviewFormModalProps) {
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
+    const [name, setName] = useState('');
+    const [selectedProductId, setSelectedProductId] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (rating === 0) return; // Validate rating
-        onSubmit({ rating, title, body });
+        if (products && products.length > 0 && !selectedProductId) return; // Validate product selection if required
+        if (showNameInput && !name.trim()) return; // Validate name if required
+
+        onSubmit({ rating, title, body, productId: selectedProductId, name: showNameInput ? name : undefined });
+
         // Reset form
         setRating(0);
         setTitle('');
         setBody('');
+        setName('');
+        setSelectedProductId('');
     };
 
     if (!isOpen) return null;
@@ -45,7 +55,7 @@ export default function ReviewFormModal({ isOpen, onClose, onSubmit }: ReviewFor
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+                    className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
                 >
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-6">
@@ -56,6 +66,40 @@ export default function ReviewFormModal({ isOpen, onClose, onSubmit }: ReviewFor
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
+
+                            {/* Name Input (Guest Only) */}
+                            {showNameInput && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-700">Your Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Enter your name"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1c524f] focus:border-transparent outline-none transition-all"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Product Selection (Only needed if products provided) */}
+                            {products && products.length > 0 && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-700">Select Product</label>
+                                    <select
+                                        required
+                                        value={selectedProductId}
+                                        onChange={(e) => setSelectedProductId(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1c524f] focus:border-transparent outline-none transition-all bg-white"
+                                    >
+                                        <option value="" disabled>Choose a product...</option>
+                                        {products.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             {/* Rating */}
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-sm font-medium text-gray-700">How would you rate this product?</span>
@@ -119,7 +163,7 @@ export default function ReviewFormModal({ isOpen, onClose, onSubmit }: ReviewFor
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={rating === 0}
+                                    disabled={rating === 0 || (!!products && products.length > 0 && !selectedProductId) || (showNameInput && !name.trim())}
                                     className="flex-1 py-3 rounded-lg bg-[#1c524f] text-white font-bold hover:bg-[#153e3c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Submit Review

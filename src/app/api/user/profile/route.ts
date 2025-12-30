@@ -33,7 +33,7 @@ export async function GET() {
             );
         }
 
-        const user = await User.findById(userId); // Password excluded by default in schema
+        const user = await User.findById(userId).setOptions({ bufferCommands: false }); // Password excluded by default in schema
         if (!user) {
             return NextResponse.json(
                 { error: 'User not found' },

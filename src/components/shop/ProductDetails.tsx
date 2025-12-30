@@ -502,7 +502,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                 {/* Frequently Bought With Section */}
                 {/* {relatedProducts.length > 0 && ( ... )} -- Omitted for now unless passed as props */}
                 {/* Reviews Section */}
-                <ReviewsSection />
+                <ReviewsSection productId={product._id} />
 
             </div>
         </div>

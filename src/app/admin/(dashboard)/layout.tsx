@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/admin/Sidebar';
-import CoolLoader from '@/components/ui/CoolLoader'; // Assuming this exists or use simple loader
 import { Toaster } from 'react-hot-toast';
 
 export default function AdminLayout({
@@ -18,7 +17,7 @@ export default function AdminLayout({
 
     useEffect(() => {
         // Double check auth & role on entry
-        fetch('/api/user/profile')
+        fetch('/api/admin/profile')
             .then(res => {
                 if (res.status === 401) {
                     router.push('/admin/login');
@@ -27,17 +26,35 @@ export default function AdminLayout({
                 return res.json();
             })
             .then(user => {
-                if (user.role !== 'admin') {
-                    router.push('/'); // Kick non-admins out to home
-                    // or router.push('/admin/login') with error?
+                if (user.error) {
+                    console.error("Profile fetch error:", user.error);
+                    // Optionally set an error state here instead of authorized
+                    return;
+                }
+                if (user.role !== 'admin' && user.role !== 'staff') {
+                    router.push('/');
                 } else {
                     setAuthorized(true);
                 }
             })
-            .catch(() => {
-                // Error handling moved inside fetch block for redirect
+            .catch((err) => {
+                console.error("Profile fetch failed:", err);
             });
     }, [router]);
+
+    // Heartbeat for Real-time Status
+    useEffect(() => {
+        if (!authorized) return;
+
+        const beat = () => {
+            fetch('/api/admin/heartbeat', { method: 'POST' }).catch(() => { });
+        };
+
+        // Beat immediately on load, then every 60s
+        beat();
+        const interval = setInterval(beat, 60000);
+        return () => clearInterval(interval);
+    }, [authorized]);
 
     if (!authorized) {
         return (

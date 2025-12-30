@@ -59,8 +59,10 @@ export default function InvoicePage() {
                 <div className="bg-[#1c524f] text-white p-8 print:bg-white print:text-black print:border-b-2 print:border-black">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-3xl font-bold font-heading mb-1">ATTITUDE.PK</h2>
-                            <p className="opacity-80 text-sm">Premium Fragrances & Attars</p>
+                            <h2 className="text-3xl font-bold font-heading mb-1">
+                                ATTITUDE <span className="text-sm ml-0.5">PK</span>
+                            </h2>
+                            <p className="opacity-80 text-sm">Premium Baby & Kids Care</p>
                         </div>
                         <div className="text-right">
                             <h3 className="text-xl font-bold mb-1">INVOICE</h3>

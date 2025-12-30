@@ -23,7 +23,7 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'admin', 'guest'],
+        enum: ['user', 'admin', 'staff', 'guest'],
         default: 'user',
     },
     address: {
@@ -58,6 +58,9 @@ const UserSchema = new mongoose.Schema({
     otpExpires: {
         type: Date,
         select: false,
+    },
+    lastLogin: {
+        type: Date,
     },
 });
 

@@ -1,36 +1,47 @@
 import { MetadataRoute } from 'next';
 import dbConnect from '@/lib/db/connect';
-import ProductModel from '@/lib/models/Product';
+import Product from '@/lib/models/Product';
+
+export const revalidate = 3600; // Revalidate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://attitudepk.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://attitude-pk.vercel.app';
 
     // Static Routes
     const routes = [
         '',
+        '/baby',
+        '/kids',
+        '/home',
+        '/shipping',
+        '/privacy',
+        '/terms',
+        '/conditions',
+        '/faq',
         '/contact',
-        '/track-order', // Add other static routes here
     ].map((route) => ({
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
-        changeFrequency: 'daily' as const,
+        changeFrequency: 'weekly' as const,
         priority: route === '' ? 1 : 0.8,
     }));
 
     // Dynamic Product Routes
     let productRoutes: MetadataRoute.Sitemap = [];
+
     try {
         await dbConnect();
-        const products = await ProductModel.find({ isActive: true }).select('_id updatedAt').lean();
+        const products = await Product.find({ isActive: true }).select('slug updatedAt').lean();
 
         productRoutes = products.map((product: any) => ({
-            url: `${baseUrl}/product/${product._id}`,
-            lastModified: product.updatedAt || new Date(),
-            changeFrequency: 'weekly' as const,
+            url: `${baseUrl}/products/${product.slug}`,
+            lastModified: product.updatedAt ? new Date(product.updatedAt) : new Date(),
+            changeFrequency: 'daily' as const,
             priority: 0.9,
         }));
     } catch (error) {
-        console.error('Sitemap generation failed to fetch products:', error);
+        console.error("Sitemap Generation Error:", error);
+        // Continue with static routes if DB fails
     }
 
     return [...routes, ...productRoutes];

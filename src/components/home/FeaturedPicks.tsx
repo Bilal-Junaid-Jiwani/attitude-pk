@@ -15,6 +15,7 @@ interface Product {
     price: number;
     compareAtPrice?: number;
     imageUrl: string;
+    images?: string[];
     subCategory?: string;
     category?: { name: string };
     stock: number;
@@ -86,7 +87,7 @@ const FeaturedPicks = () => {
     if (products.length === 0) return null;
 
     return (
-        <section className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-white shadow-sm my-16">
+        <section id="featured-picks" className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-white shadow-sm my-16">
             {/* Header & Tabs */}
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                 <div>

@@ -6,7 +6,9 @@ import Format from '@/lib/models/Format';
 export async function GET() {
     await dbConnect();
     try {
-        const formats = await Format.find({}).sort({ createdAt: -1 });
+        const formats = await Format.find({})
+            .setOptions({ bufferCommands: false })
+            .sort({ createdAt: -1 });
         return NextResponse.json(formats);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

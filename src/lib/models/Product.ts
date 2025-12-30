@@ -98,10 +98,24 @@ ProductSchema.index({ category: 1 });
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ subCategory: 1 });
 
-// Basic Slugify
-ProductSchema.pre('save', function (next) {
+// Better Slugify with Uniqueness Check
+ProductSchema.pre('save', async function (next) {
     if (this.isModified('name')) {
-        this.slug = this.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        let slug = this.name.toLowerCase()
+            .replace(/ /g, '-')
+            .replace(/[^\w-]+/g, '')
+            .replace(/--+/g, '-') // Replace multiple hyphens with single
+            .replace(/^-+/, '') // Trim leading hyphens
+            .replace(/-+$/, ''); // Trim trailing hyphens
+
+        // Check for uniqueness
+        const existingProduct = await mongoose.models.Product.findOne({ slug: slug });
+        if (existingProduct) {
+            // If exists, append random string
+            const random = Math.floor(Math.random() * 1000);
+            slug = `${slug}-${random}`;
+        }
+        this.slug = slug;
     }
     next();
 });

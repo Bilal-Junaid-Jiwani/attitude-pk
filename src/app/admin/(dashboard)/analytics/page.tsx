@@ -90,7 +90,7 @@ const MetricCard = ({
                             <Tooltip
                                 cursor={{ stroke: '#9ca3af', strokeDasharray: '2 2' }}
                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                                formatter={(val: number, name: string) => [
+                                formatter={(val: any, name: any) => [
                                     `${prefix}${(val || 0).toLocaleString()}${suffix}`,
                                     'Current'
                                 ]}
@@ -225,8 +225,8 @@ export default function AnalyticsPage() {
                                     key={opt.val}
                                     onClick={() => applyPreset(opt.val)}
                                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${dateRange === opt.val
-                                            ? 'bg-[#008060] text-white shadow-sm'
-                                            : 'text-gray-600 hover:bg-gray-100'
+                                        ? 'bg-[#008060] text-white shadow-sm'
+                                        : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     {opt.label}
@@ -235,8 +235,8 @@ export default function AnalyticsPage() {
                             <button
                                 onClick={() => applyPreset('custom')}
                                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${dateRange === 'custom'
-                                        ? 'bg-[#008060] text-white shadow-sm'
-                                        : 'text-gray-600 hover:bg-gray-100'
+                                    ? 'bg-[#008060] text-white shadow-sm'
+                                    : 'text-gray-600 hover:bg-gray-100'
                                     }`}
                             >
                                 Custom
@@ -364,7 +364,7 @@ export default function AnalyticsPage() {
                                         <span className="text-xs font-medium text-gray-400 w-4">{i + 1}</span>
                                         <div>
                                             <p className="text-sm font-medium text-[#303030] group-hover:text-[#008060] transition-colors">{p.name}</p>
-                                            <p className="text-xs text-gray-500">Rs. {p.price?.toLocaleString() || 0}</p>
+
                                         </div>
                                     </div>
                                     <div className="text-right">

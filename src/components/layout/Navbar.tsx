@@ -46,7 +46,7 @@ const Navbar = () => {
                         {/* Logo */}
                         <div className="flex-shrink-0 flex items-center justify-center md:justify-start flex-1 md:flex-none">
                             <Link href="/" className="text-3xl font-heading font-bold tracking-tight text-gray-900 group">
-                                ATTITUDE <span className="text-primary group-hover:text-green-700 transition-colors">PK</span>
+                                ATTITUDE <span className="text-primary group-hover:text-green-700 transition-colors text-sm ml-0.5">PK</span>
                             </Link>
                         </div>
 

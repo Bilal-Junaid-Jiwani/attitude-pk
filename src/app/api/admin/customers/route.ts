@@ -124,7 +124,7 @@ export async function POST(req: Request) {
             name,
             email,
             phone,
-            address,
+
             city, // Note: User model might not have city field explicitly defined in schemas shown earlier, 
             // but MongoDB is flexible. If User schema is strict, we might need to update Schema again 
             // or map city to address string. User schema has 'address' and 'postcode'.
@@ -142,3 +142,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+

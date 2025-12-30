@@ -29,15 +29,15 @@ const SelfCareBanner = () => {
                             </div>
 
                             <h2 className="text-5xl md:text-6xl font-heading font-bold text-[#1c524f] mb-4">
-                                2-in-1 Kids Shampoo & Body Wash
+                                Pure & Gentle Care
                             </h2>
 
                             <p className="text-gray-600 text-lg mb-8 font-medium">
-                                Gently cleanses kids’ delicate hair and skin
+                                Discover our worry-free, hypoallergenic products crafted to protect and nourish your baby's delicate skin.
                             </p>
 
                             <Link
-                                href="/shop"
+                                href="/collections/baby"
                                 className="bg-[#1c524f] text-white px-8 py-3 rounded-md font-bold text-sm tracking-wide hover:bg-[#153e3c] transition-colors shadow-lg hover:shadow-xl inline-block"
                             >
                                 Shop Now

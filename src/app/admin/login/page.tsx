@@ -11,9 +11,6 @@ export default function AdminLoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    // Assuming we use the same API but validate role client-side for "separation" illusion 
-    // or we could create a dedicated /api/admin/login logic. 
-    // For now, let's use the standard login endpoint but strictly check role before redirecting.
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,7 +18,7 @@ export default function AdminLoginPage() {
         setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
+            const res = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -33,17 +30,8 @@ export default function AdminLoginPage() {
                 throw new Error(data.error || 'Login failed');
             }
 
-            // CRITICAL: Staff/Admin Verification
-            if (data.role !== 'admin') {
-                // If they are a user, we technically logged them in (cookie set), 
-                // but we want to deny access to this portal. 
-                // We should probably logout immediately or just show error using a new logout endpoint if needed.
-                // For simplified UX: show error and maybe clear cookie?
-                await fetch('/api/auth/logout', { method: 'POST' }); // Ensure session is killed
-                throw new Error('Access Denied: Staff accounts only.');
-            }
-
-            // If Admin
+            // Success! API sets 'admin_token' cookie.
+            // Redirect to dashboard.
             router.push('/admin');
 
         } catch (err: any) {
