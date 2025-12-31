@@ -57,7 +57,7 @@ const CategorySlider = () => {
     return (
         <section className="py-20 w-full bg-white">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 px-6 md:px-12">
+            <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-12 gap-6 px-6 md:px-12 text-center md:text-left">
                 <div>
                     <h2 className="text-4xl md:text-5xl font-heading font-bold text-[#1c524f] mb-3">
                         One-Stop Shop

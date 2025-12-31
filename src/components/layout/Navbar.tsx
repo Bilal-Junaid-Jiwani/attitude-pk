@@ -25,7 +25,7 @@ const Navbar = () => {
 
             <nav className="sticky top-0 z-50 w-full glass transition-all duration-300 border-y-[4px] border-[#1c524f]">
                 {/* Top Banner */}
-                <div className="bg-primary text-white text-xs font-medium py-2 text-center tracking-wider">
+                <div className="bg-primary text-white text-[10px] md:text-xs font-medium py-2 text-center tracking-wider">
                     FREE SHIPPING ON ORDERS OVER RS. 5000 | PURE & NATURAL
                 </div>
 

@@ -71,61 +71,61 @@ const Footer = () => {
     return (
         <footer className="bg-gray-50 border-t border-gray-100 pt-16 pb-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12 text-center md:text-left">
                     {/* Brand */}
-                    <div className="flex flex-col space-y-4">
-                        <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-                            ATTITUDE <span className="text-primary text-sm ml-0.5">PK</span>
+                    <div className="flex flex-col space-y-4 items-center md:items-start">
+                        <h2 className="text-2xl font-bold tracking-tight text-[#1c524f]">
+                            ATTITUDE <span className="text-[#1c524f] text-sm ml-0.5">PK</span>
                         </h2>
-                        <p className="text-gray-500 text-sm">
+                        <p className="text-[#1c524f] text-sm font-medium">
                             Live consciously. Clean products for your family and home.
                         </p>
                     </div>
 
                     {/* Shop */}
                     <div>
-                        <h3 className="text-sm font-semibold text-gray-900 tracking-wider uppercase mb-4">Shop</h3>
+                        <h3 className="text-sm font-bold text-[#1c524f] tracking-wider uppercase mb-4">Shop</h3>
                         <ul className="space-y-3">
-                            <li><Link href="/baby" className="text-sm text-gray-500 hover:text-primary transition-colors">Baby</Link></li>
-                            <li><Link href="/kids" className="text-sm text-gray-500 hover:text-primary transition-colors">Kids</Link></li>
-                            <li><Link href="/home" className="text-sm text-gray-500 hover:text-primary transition-colors">Home</Link></li>
-                            <li><Link href="/trending" className="text-sm text-gray-500 hover:text-primary transition-colors">Trending</Link></li>
+                            <li><Link href="/baby" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Baby</Link></li>
+                            <li><Link href="/kids" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Kids</Link></li>
+                            <li><Link href="/home" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Home</Link></li>
+                            <li><Link href="/trending" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Trending</Link></li>
                         </ul>
                     </div>
 
                     {/* Help Center */}
                     <div>
-                        <h3 className="text-sm font-semibold text-gray-900 tracking-wider uppercase mb-4">Help Center</h3>
+                        <h3 className="text-sm font-bold text-[#1c524f] tracking-wider uppercase mb-4">Help Center</h3>
                         <ul className="space-y-3">
-                            <li><Link href="/faq" className="text-sm text-gray-500 hover:text-primary transition-colors">FAQ</Link></li>
-                            <li><Link href="/contact" className="text-sm text-gray-500 hover:text-primary transition-colors">Contact Us</Link></li>
-                            <li><Link href="/shipping" className="text-sm text-gray-500 hover:text-primary transition-colors">Shipping & Refund</Link></li>
-                            <li><Link href="/conditions" className="text-sm text-gray-500 hover:text-primary transition-colors">Conditions of Promotions</Link></li>
-                            <li><Link href="/terms" className="text-sm text-gray-500 hover:text-primary transition-colors">Terms and Conditions</Link></li>
-                            <li><Link href="/privacy" className="text-sm text-gray-500 hover:text-primary transition-colors">Privacy Policy</Link></li>
+                            <li><Link href="/faq" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">FAQ</Link></li>
+                            <li><Link href="/contact" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Contact Us</Link></li>
+                            <li><Link href="/shipping" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Shipping & Refund</Link></li>
+                            <li><Link href="/conditions" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Conditions of Promotions</Link></li>
+                            <li><Link href="/terms" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Terms and Conditions</Link></li>
+                            <li><Link href="/privacy" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Privacy Policy</Link></li>
                         </ul>
                     </div>
 
                     {/* Social */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-900 tracking-wider uppercase mb-4">Follow Us</h3>
+                    <div className="flex flex-col items-center md:items-start">
+                        <h3 className="text-sm font-bold text-[#1c524f] tracking-wider uppercase mb-4">Follow Us</h3>
                         <div className="flex space-x-4">
-                            <a href="#" className="text-gray-400 hover:text-primary transition-colors">
+                            <a href="#" className="text-[#1c524f] hover:text-[#153e3c] transition-colors">
                                 <Facebook size={20} />
                             </a>
-                            <a href="#" className="text-gray-400 hover:text-primary transition-colors">
+                            <a href="#" className="text-[#1c524f] hover:text-[#153e3c] transition-colors">
                                 <Instagram size={20} />
                             </a>
-                            <a href="#" className="text-gray-400 hover:text-primary transition-colors">
+                            <a href="#" className="text-[#1c524f] hover:text-[#153e3c] transition-colors">
                                 <Twitter size={20} />
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <div className="border-t border-gray-200 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center bg-gray-50">
-                    {/* Legal Links (Left Side) */}
-                    <div className="flex space-x-6 mb-4 md:mb-0 order-2 md:order-1">
+                <div className="border-t border-gray-200 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center bg-gray-50 text-center md:text-left gap-4 md:gap-0">
+                    {/* Legal Links (Left Side) - Adjusted for mobile center */}
+                    <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 order-2 md:order-1">
                         <Link href="/terms" className="text-sm text-[#004C45] hover:underline font-medium">Terms and Conditions</Link>
                         <Link href="/privacy" className="text-sm text-[#004C45] hover:underline font-medium">Privacy Policy</Link>
                         <button
@@ -137,7 +137,7 @@ const Footer = () => {
                     </div>
 
                     {/* Copyright (Right Side) */}
-                    <p className="text-sm text-gray-400 order-1 md:order-2 mb-4 md:mb-0">
+                    <p className="text-sm text-[#1c524f] order-1 md:order-2 font-medium">
                         &copy; {new Date().getFullYear()} Attitude PK. All rights reserved.
                     </p>
                 </div>

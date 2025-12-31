@@ -66,7 +66,7 @@ const PromotionalSlider = () => {
                             <div className="flex flex-col md:flex-row h-full">
 
                                 {/* Text Side (Left) */}
-                                <div className={`w-full md:w-1/2 p-12 md:p-20 flex flex-col justify-center items-start z-10 ${slide.bgColor} transition-colors duration-500`}>
+                                <div className={`w-full md:w-1/2 p-8 md:p-20 flex flex-col justify-center items-start z-10 ${slide.bgColor} transition-colors duration-500`}>
                                     <motion.h2
                                         initial={{ y: 20, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
