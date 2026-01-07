@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone, MapPin, ExternalLink, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, ExternalLink, Trash2, Gift, MessageCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import Skeleton from '@/components/ui/Skeleton';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
@@ -32,6 +32,12 @@ interface Customer {
     type?: 'Registered' | 'Guest'; // Added type
 }
 
+interface Coupon {
+    code: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+}
+
 export default function CustomerDetailPage() {
     const { id } = useParams();
     const router = useRouter();
@@ -41,6 +47,11 @@ export default function CustomerDetailPage() {
     const [loading, setLoading] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Offer Section State
+    const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
+    const [selectedCoupon, setSelectedCoupon] = useState('');
+    const [sendingOffer, setSendingOffer] = useState(false);
 
     useEffect(() => {
         fetchCustomerData();
@@ -53,6 +64,7 @@ export default function CustomerDetailPage() {
                 const data = await res.json();
                 setCustomer(data.customer);
                 setOrders(data.orders);
+                if (data.activeCoupons) setActiveCoupons(data.activeCoupons);
             } else {
                 throw new Error('Customer not found');
             }
@@ -176,6 +188,52 @@ export default function CustomerDetailPage() {
         } finally {
             setDeleting(false);
         }
+    };
+
+    const handleSendOfferEmail = async () => {
+        if (!customer) return;
+        setSendingOffer(true);
+        const toastId = addToast('Sending offer...', 'info');
+
+        try {
+            const res = await fetch('/api/admin/customers/offer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerId: customer._id,
+                    couponCode: selectedCoupon,
+                    email: customer.email,
+                    type: customer.type || 'Registered',
+                    name: customer.name
+                })
+            });
+
+            if (res.ok) {
+                addToast('Offer sent successfully via Email!', 'success');
+                setSelectedCoupon('');
+            } else {
+                throw new Error('Failed to send offer');
+            }
+        } catch (error) {
+            console.error(error);
+            addToast('Failed to send offer email', 'error');
+        } finally {
+            setSendingOffer(false);
+        }
+    };
+
+    const getWhatsAppLink = () => {
+        if (!customer?.phone || !selectedCoupon) return '#';
+
+        const coupon = activeCoupons.find(c => c.code === selectedCoupon);
+        if (!coupon) return '#';
+
+        const discountText = coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `Rs. ${coupon.discountValue}`;
+        const phone = customer.phone.replace(/\D/g, '').replace(/^0/, '92');
+
+        const message = `Assalam-o-Alaikum ${customer.name}, Attitude PK ki taraf se apke liye special gift! 🎁\n\nUse Code: *${selectedCoupon}* aur payein *${discountText} OFF*.\n\nLimited time offer. Order now: https://attitude-pk.vercel.app`;
+
+        return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     };
 
     return (
@@ -345,6 +403,61 @@ export default function CustomerDetailPage() {
                             </div>
                         ) : (
                             <p className="text-sm text-gray-500">No address saved</p>
+                        )}
+                    </div>
+
+                    {/* Send Offer Section */}
+                    <div className="bg-gradient-to-br from-[#1c524f] to-[#15403d] rounded-lg shadow-md border border-[#1c524f] p-6 text-white">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-lg flex items-center gap-2">
+                                <Gift size={18} /> Send Offer
+                            </h3>
+                        </div>
+
+                        {activeCoupons.length > 0 ? (
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-300 uppercase">Select Coupon</label>
+                                    <select
+                                        className="w-full bg-white/10 border border-white/20 rounded-md py-2 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:text-gray-800"
+                                        value={selectedCoupon}
+                                        onChange={(e) => setSelectedCoupon(e.target.value)}
+                                    >
+                                        <option value="">Select a discount...</option>
+                                        {activeCoupons.map(c => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.code} ({c.discountType === 'percentage' ? `${c.discountValue}%` : `Rs. ${c.discountValue}`} OFF)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={handleSendOfferEmail}
+                                        disabled={!selectedCoupon || sendingOffer}
+                                        className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                                    >
+                                        <Mail size={16} /> Email
+                                    </button>
+
+                                    {customer.phone && (
+                                        <a
+                                            href={selectedCoupon ? getWhatsAppLink() : '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white rounded-lg py-2 text-sm font-bold transition-colors shadow-sm ${!selectedCoupon ? 'opacity-50 pointer-events-none' : ''}`}
+                                        >
+                                            <MessageCircle size={16} /> WhatsApp
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 bg-white/5 rounded-lg">
+                                <p className="text-sm text-gray-300">No active coupons found.</p>
+                                <Link href="/admin/marketing" className="text-xs text-white underline mt-2 inline-block">Create Coupon</Link>
+                            </div>
                         )}
                     </div>
 

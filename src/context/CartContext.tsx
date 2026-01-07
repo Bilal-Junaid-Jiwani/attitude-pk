@@ -26,6 +26,7 @@ interface CartContextType {
     isCartOpen: boolean;
     openCart: () => void;
     closeCart: () => void;
+    restoreCart: (items: CartItem[]) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -127,7 +128,12 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
                 cartTotal,
                 isCartOpen,
                 openCart,
-                closeCart
+                closeCart,
+                restoreCart: (items: CartItem[]) => {
+                    setCart(items);
+                    localStorage.setItem('attitude_cart', JSON.stringify(items));
+                    addToast('Cart restored successfully', 'success');
+                }
             }}
         >
             {children}

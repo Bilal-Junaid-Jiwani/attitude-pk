@@ -12,8 +12,10 @@ const AbandonedCheckoutSchema = new mongoose.Schema({
         imageUrl: String
     }],
     totalAmount: Number,
-    recovered: { type: Boolean, default: false }, // If order placed
-    notified: { type: Boolean, default: false }, // If email/sms sent (or manual)
+    isRecovered: { type: Boolean, default: false },
+    recoverySentAt: { type: Date }, // Date when email/msg was sent
+    clickedAt: { type: Date }, // Date when user clicked link
+    recoveryCount: { type: Number, default: 0 }, // How many times notified
 }, { timestamps: true });
 
 // Prevent duplicates by email within 24 hours? 

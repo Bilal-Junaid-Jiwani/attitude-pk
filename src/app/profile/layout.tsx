@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/ToastProvider';
 const SIDEBAR_LINKS = [
     { label: 'My Profile', href: '/profile', icon: User },
     { label: 'Order History', href: '/profile/orders', icon: Package },
+    { label: 'Wishlist', href: '/wishlist', icon: Heart },
     { label: 'Address Book', href: '/profile/addresses', icon: MapPin },
 ];
 

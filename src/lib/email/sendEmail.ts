@@ -266,10 +266,10 @@ export const sendAbandonedCartEmail = async (to: string, cart: any) => {
             </table>
 
             <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
-                <a href="${BASE_URL}/checkout" style="display: inline-block; padding: 14px 28px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Complete Your Order</a>
+                <a href="${BASE_URL}/checkout/recover/${cart._id}" style="display: inline-block; padding: 14px 28px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Recover Your Cart</a>
             </div>
             
-            <p style="text-align: center; color: #999; font-size: 14px;">(Link takes you directly to checkout)</p>
+            <p style="text-align: center; color: #999; font-size: 14px;">Or click here: <a href="${BASE_URL}/checkout/recover/${cart._id}" style="color: #1c524f;">${BASE_URL}/checkout/recover/${cart._id}</a></p>
         </div>
         <div style="background-color: #f5f5f5; padding: 15px; text-align: center; color: #aaa; font-size: 12px;">
             <p>Attitude.pk - Premium Fragrances</p>
@@ -277,5 +277,40 @@ export const sendAbandonedCartEmail = async (to: string, cart: any) => {
     </div>
     `;
 
+    return sendEmail({ to, subject, html });
+};
+
+export const sendDiscountOfferEmail = async (to: string, data: { name: string, code: string, discount: string }) => {
+    const subject = `A Special Gift for You! 🎁 Get ${data.discount} OFF`;
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+        <div style="background-color: #1c524f; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">We Miss You!</h1>
+        </div>
+        <div style="padding: 40px 30px; text-align: center;">
+            <p style="color: #666; font-size: 18px;">Hi <strong>${data.name}</strong>,</p>
+            <p style="color: #666; line-height: 1.6;">It's been a while! We'd love to see you back. Here is a special treat just for you to grab your favorite fragrance.</p>
+            
+            <div style="margin: 30px 0; background-color: #fff9f0; padding: 20px; border: 2px dashed #ff9900; border-radius: 10px;">
+                <p style="color: #885500; margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; font-weight: bold;">Use Coupon Code</p>
+                <span style="font-size: 32px; font-weight: bold; color: #d72c0d; letter-spacing: 2px;">${data.code}</span>
+                <p style="color: #d72c0d; margin: 10px 0 0 0; font-weight: bold;">for ${data.discount} OFF</p>
+            </div>
+
+            <p style="color: #999; font-size: 14px;">This offer is valid for a limited time. Don't wait!</p>
+
+            <div style="margin-top: 40px;">
+                <a href="${BASE_URL}" style="display: inline-block; padding: 15px 30px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 10px rgba(28, 82, 79, 0.3);">Shop Now & Save</a>
+            </div>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; margin-top: 30px; border-radius: 5px; color: #777; font-size: 13px;">
+                <p>Have questions? Reply to this email and we'll help you out.</p>
+            </div>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; color: #aaa; font-size: 12px;">
+            <p>Attitude.pk - Premium Fragrances</p>
+        </div>
+    </div>
+    `;
     return sendEmail({ to, subject, html });
 };

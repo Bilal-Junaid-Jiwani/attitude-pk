@@ -27,6 +27,11 @@ export async function POST(req: Request) {
         console.log(`Sending abandoned cart email to ${cart.email} for cart ${cartId}`);
         await sendAbandonedCartEmail(cart.email, cart);
 
+        // Mark as sent
+        cart.recoverySentAt = new Date();
+        cart.recoveryCount = (cart.recoveryCount || 0) + 1;
+        await cart.save();
+
         return NextResponse.json({ success: true, message: 'Recovery email sent successfully' });
 
     } catch (error) {

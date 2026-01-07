@@ -51,8 +51,8 @@ const PromotionalSlider = () => {
     const slide = SLIDES[currentSlide];
 
     return (
-        <section className="py-8 w-full max-w-[95%] mx-auto px-0">
-            <div className="relative rounded-3xl overflow-hidden shadow-sm group bg-[#F5F5F3] h-[500px]">
+        <section className="py-8 w-full md:max-w-[95%] mx-auto px-0">
+            <div className="relative md:rounded-3xl overflow-hidden shadow-sm group bg-[#F5F5F3] h-[500px]">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentSlide}

@@ -87,7 +87,7 @@ const FeaturedPicks = () => {
     const isLoading = loading;
 
     return (
-        <section id="featured-picks" className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-white shadow-sm my-16">
+        <section id="featured-picks" className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-white shadow-sm my-16 overflow-hidden">
             {/* Header & Tabs */}
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                 <div>

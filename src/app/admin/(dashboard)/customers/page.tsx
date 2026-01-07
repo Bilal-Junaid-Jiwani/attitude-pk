@@ -27,6 +27,7 @@ export default function CustomersPage() {
     const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterDate, setFilterDate] = useState('');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState('all');
     const router = useRouter();
@@ -38,7 +39,7 @@ export default function CustomersPage() {
 
     useEffect(() => {
         filterCustomers();
-    }, [customers, activeTab]);
+    }, [customers, activeTab, filterDate]);
 
     const fetchCustomers = async () => {
         setLoading(true);
@@ -67,6 +68,17 @@ export default function CustomersPage() {
         } else if (activeTab === 'returning') {
             result = customers.filter(c => c.ordersCount > 1);
         }
+
+        if (filterDate) {
+            const dateLimit = new Date(filterDate);
+            // We want customers whose LAST order was BEFORE (or on) this date.
+            // i.e. Inactive since then.
+            result = result.filter(c => {
+                if (!c.lastOrderDate) return false;
+                return new Date(c.lastOrderDate) <= dateLimit;
+            });
+        }
+
         setFilteredCustomers(result);
         setSelectedIds([]);
     };
@@ -125,7 +137,18 @@ export default function CustomersPage() {
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-xl font-bold text-[#1a1a1a]">Customers</h1>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <div className="relative">
+                        <input
+                            type="date"
+                            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50 outline-none focus:border-[#1c524f]"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            title="Filter by Last Order Date (Show inactive customers)"
+                        />
+                        {!filterDate && <span className="absolute right-8 top-1.5 pointer-events-none text-gray-400 text-xs bg-white px-1">Last Order Before</span>}
+                    </div>
+
                     <button
                         onClick={handleExport}
                         className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50 flex items-center gap-1"

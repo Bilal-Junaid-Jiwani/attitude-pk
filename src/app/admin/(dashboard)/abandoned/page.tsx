@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { MessageCircle, ShoppingCart, Clock, Trash2, ArrowUpRight, Mail } from 'lucide-react';
-import Link from 'next/link';
-import toast from 'react-hot-toast';
+import { ShoppingCart, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface AbandonedCart {
     _id: string;
@@ -17,11 +16,15 @@ interface AbandonedCart {
     }[];
     totalAmount: number;
     updatedAt: string;
+    isRecovered?: boolean;
+    clickedAt?: string;
+    recoverySentAt?: string;
 }
 
 export default function AbandonedCartsPage() {
     const [carts, setCarts] = useState<AbandonedCart[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         fetch('/api/admin/abandoned')
@@ -33,60 +36,51 @@ export default function AbandonedCartsPage() {
             .catch(err => setLoading(false));
     }, []);
 
-    const handleSendEmail = async (cartId: string) => {
-        const toastId = toast.loading('Sending recovery email...');
-        try {
-            const res = await fetch('/api/admin/abandoned/email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cartId }),
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                toast.success('Email sent successfully', { id: toastId });
-            } else {
-                toast.error(data.error || 'Failed to send email', { id: toastId });
-            }
-        } catch (error) {
-            toast.error('Error sending email', { id: toastId });
-        }
-    };
-
     if (loading) return <div className="p-8 text-center text-gray-500">Loading abandoned carts...</div>;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="max-w-[1600px] mx-auto p-6 text-[#303030]">
+            <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Abandoned Checkouts</h1>
-                    <p className="text-gray-500 text-sm">Recover lost sales by contacting customers via WhatsApp</p>
+                    <h1 className="text-xl font-bold text-[#1a1a1a]">Abandoned Checkouts</h1>
+                    <p className="text-gray-500 text-xs mt-1">Recover lost sales by contacting customers</p>
                 </div>
-                <div className="text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-100 font-medium">
-                    {carts.length} Opportunities Found
+                <div className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded border border-blue-100 font-medium">
+                    {carts.length} Potential Orders
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Cart Summary</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Customer</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Cart</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Status</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-right"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {carts.map((cart) => {
                             const date = new Date(cart.updatedAt);
-                            const customerName = cart.name || 'Guest';
-                            const contact = cart.phone || cart.email || '-';
-                            const phoneClean = cart.phone?.replace(/\D/g, '').replace(/^0/, '92');
+                            let statusBadge = <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">Pending</span>;
+
+                            if (cart.isRecovered) {
+                                statusBadge = <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">RECOVERED</span>;
+                            } else if (cart.clickedAt) {
+                                statusBadge = <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">Clicked</span>;
+                            } else if (cart.recoverySentAt) {
+                                statusBadge = <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">Sent</span>;
+                            }
 
                             return (
-                                <tr key={cart._id} className="hover:bg-gray-50 transition-colors">
+                                <tr
+                                    key={cart._id}
+                                    onClick={() => router.push(`/admin/abandoned/${cart._id}`)}
+                                    className="hover:bg-gray-50 cursor-pointer transition-colors group"
+                                >
                                     <td className="px-6 py-4 text-sm text-gray-500">
                                         <div className="flex flex-col">
                                             <span className="font-medium text-gray-900">{date.toLocaleDateString()}</span>
@@ -94,46 +88,30 @@ export default function AbandonedCartsPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-gray-900">{customerName}</span>
-                                            <span className="text-sm text-gray-500">{contact}</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                                                {(cart.name || 'G').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-sm text-[#1a1a1a] group-hover:underline">{cart.name || 'Guest'}</p>
+                                                <p className="text-xs text-gray-500">{cart.email || cart.phone || 'No contact'}</p>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-sm text-gray-700 max-w-xs">
-                                            <span className="font-medium">{cart.cartItems.length} Items:</span>
-                                            <span className="text-gray-500 ml-1 truncate block">
-                                                {cart.cartItems.map(i => `${i.quantity}x ${i.name}`).join(', ')}
-                                            </span>
-                                        </div>
+                                        <p className="text-sm text-gray-700 font-medium">{cart.cartItems.length} items</p>
+                                        <p className="text-xs text-gray-500 truncate max-w-[200px]">
+                                            {cart.cartItems.map(i => i.name).join(', ')}
+                                        </p>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-bold text-gray-900">
                                         Rs. {cart.totalAmount?.toLocaleString()}
                                     </td>
+                                    <td className="px-6 py-4 text-center">
+                                        {statusBadge}
+                                    </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            {cart.email && (
-                                                <button
-                                                    onClick={() => handleSendEmail(cart._id)}
-                                                    className="flex items-center justify-center w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
-                                                    title="Send Recovery Email"
-                                                >
-                                                    <Mail size={16} />
-                                                </button>
-                                            )}
-                                            {phoneClean ? (
-                                                <a
-                                                    href={`https://wa.me/${phoneClean}?text=${encodeURIComponent(`Assalam-o-Alaikum ${customerName}, Attitude PK se rabta kar rahe hain.\n\nHum ne notice kiya ke aap ne order place karne ki koshish ki thi lekin complete nahi hua.\n\nKya hum aap ki koi madad kar sakte hain?\n\nShukriya,\nTeam Attitude PK`)}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-sm hover:shadow-md"
-                                                >
-                                                    <MessageCircle size={16} /> WhatsApp
-                                                </a>
-                                            ) : (
-                                                !cart.email && <span className="text-gray-400 text-xs italic">No Contact</span>
-                                            )}
-                                        </div>
+                                        <ExternalLink size={16} className="text-gray-400 group-hover:text-gray-600 inline-block" />
                                     </td>
                                 </tr>
                             );

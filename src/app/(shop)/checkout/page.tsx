@@ -170,7 +170,8 @@ export default function CheckoutPage() {
                 subtotal: cartTotal,
                 tax: taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0,
                 shippingCost: cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200),
-                totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)
+                totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0),
+                recoveryId: localStorage.getItem('recovery_id') // Track recovery
             };
 
             const res = await fetch('/api/orders', {
@@ -224,7 +225,8 @@ export default function CheckoutPage() {
             subtotal: cartTotal,
             tax: taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0,
             shippingCost: cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200),
-            totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0)
+            totalAmount: cartTotal + (taxConfig.enabled ? Math.round(cartTotal * (taxConfig.rate / 100)) : 0) + (cartTotal >= (shippingConfig?.freeShippingThreshold ?? 5000) ? 0 : (shippingConfig?.standardRate ?? 200)) - (appliedCoupon?.amount || 0),
+            recoveryId: localStorage.getItem('recovery_id') // Track recovery
         };
 
         const res = await fetch('/api/orders', {

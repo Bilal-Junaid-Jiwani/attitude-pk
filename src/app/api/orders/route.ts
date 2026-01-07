@@ -171,6 +171,21 @@ export async function POST(req: Request) {
             console.error('❌ Failed to send Admin Notification:', adminErr);
         }
 
+        // 3. Mark Abandoned Cart as Recovered
+        if (body.recoveryId) {
+            try {
+                // Need to import AbandonedCheckout - adding dynamic import or modifying top imports
+                const AbandonedCheckout = (await import('@/lib/models/AbandonedCheckout')).default;
+                await AbandonedCheckout.findByIdAndUpdate(body.recoveryId, {
+                    isRecovered: true,
+                    // optional: recoveredAt: new Date()
+                });
+                console.log(`✅ Abandoned Cart ${body.recoveryId} marked as recovered.`);
+            } catch (recErr) {
+                console.error('⚠️ Failed to mark cart as recovered:', recErr);
+            }
+        }
+
         return NextResponse.json({ success: true, orderId: order._id, message: 'Order placed successfully' }, { status: 201 });
 
     } catch (error) {

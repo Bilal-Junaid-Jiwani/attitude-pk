@@ -13,10 +13,11 @@ import FeaturesBanner from '@/components/home/FeaturesBanner';
 // import ProductCatalog from '@/components/home/ProductCatalog';
 
 const HeroSection = () => (
-  <section className="w-full">
+  <section className="w-full overflow-hidden">
     <div className="relative w-full h-[85vh] overflow-hidden shadow-xl">
       <video
         src="https://res.cloudinary.com/dg89ktcrg/video/upload/q_auto:good/v1767589109/hero_xd7ymu.mp4"
+        poster="https://res.cloudinary.com/dg89ktcrg/video/upload/so_0,f_jpg,q_80/v1767589109/hero_xd7ymu.jpg"
         className="w-full h-full object-cover"
         autoPlay
         loop
@@ -31,7 +32,7 @@ const HeroSection = () => (
 
 export default function Home() {
   return (
-    <div className="bg-[#FAF9F6] pb-20">
+    <div className="bg-[#FAF9F6] pb-20 overflow-x-hidden">
       {/* Hero Section */}
       <HeroSection />
 

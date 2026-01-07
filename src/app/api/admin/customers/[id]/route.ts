@@ -48,9 +48,16 @@ export async function GET(
             orders = await Order.find({ user: id }).sort({ createdAt: -1 });
         }
 
+        // Fetch active coupons
+        const activeCoupons = await import('@/lib/models/Coupon').then(m => m.default.find({
+            isActive: true,
+            expiryDate: { $gt: new Date() }
+        }).select('code discountValue discountType'));
+
         return NextResponse.json({
             customer,
-            orders
+            orders,
+            activeCoupons
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
