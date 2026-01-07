@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Mail, Phone, MapPin, ExternalLink, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
-import CoolLoader from '@/components/ui/CoolLoader';
+import Skeleton from '@/components/ui/Skeleton';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 interface Order {
@@ -65,7 +65,77 @@ export default function CustomerDetailPage() {
         }
     };
 
-    if (loading) return <CoolLoader />;
+    if (loading) {
+        return (
+            <div className="max-w-6xl mx-auto p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="w-10 h-10 rounded shadow-sm" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-6 w-48" />
+                            <Skeleton className="h-3 w-32" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Stats Skeleton */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex divide-x divide-gray-100">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex-1 px-4 first:pl-0 space-y-2">
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-6 w-32" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Last Order Skeleton */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+                            <Skeleton className="h-6 w-32" />
+                            <div className="flex justify-between">
+                                <div className="space-y-2">
+                                    <Skeleton className="h-5 w-48" />
+                                    <Skeleton className="h-4 w-32" />
+                                </div>
+                                <div className="space-y-2 flex flex-col items-end">
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-4 w-16" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Order Table Skeleton */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-6 space-y-4">
+                            <Skeleton className="h-6 w-32 mb-4" />
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-4 w-16" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Sidebar Skeletons */}
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+                                <div className="flex justify-between">
+                                    <Skeleton className="h-5 w-32" />
+                                    <Skeleton className="h-4 w-12" />
+                                </div>
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )
+    }
     if (!customer) return <div>Customer not found</div>;
 
     const totalSpent = orders.reduce((acc, order) => acc + (order.totalAmount || 0), 0);

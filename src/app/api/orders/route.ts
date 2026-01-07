@@ -4,6 +4,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import dbConnect from '@/lib/db/connect';
 import Order from '@/lib/models/Order';
 import User from '@/lib/models/User';
+import Product from '@/lib/models/Product';
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from '@/lib/email/sendEmail';
 
 // Helper to get user ID from token
@@ -43,6 +44,11 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { user, items, totalAmount, shippingAddress, paymentMethod, subtotal, shippingCost, tax, discount, couponCode } = body;
 
+        console.log('📦 New Order Received:', { totalAmount, itemCount: items?.length });
+        items?.forEach((item: any, idx: number) => {
+            console.log(`   Item ${idx + 1}: ${item.name} | VariantID: ${item.variantId} | Qty: ${item.quantity}`);
+        });
+
 
         // Basic validation
         if (!items || items.length === 0) {
@@ -53,10 +59,39 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'Missing shipping information' }, { status: 400 });
         }
 
+        // Enrich items with cost and SKU from product database for profit tracking
+        const enrichedItems = await Promise.all(items.map(async (item: any) => {
+            try {
+                const product = await Product.findById(item.product_id).lean() as any;
+                if (product) {
+                    // Check if variant
+                    if (item.variantId && product.variants) {
+                        const variant = product.variants.find((v: any) => v._id?.toString() === item.variantId);
+                        if (variant) {
+                            return {
+                                ...item,
+                                costPerItem: variant.costPerItem || product.costPerItem || 0,
+                                sku: variant.sku || product.sku || ''
+                            };
+                        }
+                    }
+                    // Main product
+                    return {
+                        ...item,
+                        costPerItem: product.costPerItem || 0,
+                        sku: product.sku || ''
+                    };
+                }
+            } catch (e) {
+                console.error('Failed to fetch product cost:', e);
+            }
+            return { ...item, costPerItem: 0, sku: '' };
+        }));
+
         // Create Order
         const order = await Order.create({
             user: user || null,
-            items,
+            items: enrichedItems,
             totalAmount,
             subtotal,
             shippingCost,
@@ -67,6 +102,22 @@ export async function POST(req: Request) {
             paymentMethod: paymentMethod || 'COD',
             status: 'Pending',
         });
+
+        // Update Stock Levels
+        try {
+            await Promise.all(items.map(async (item: any) => {
+                if (item.variantId) {
+                    await Product.findOneAndUpdate(
+                        { _id: item.product_id, "variants._id": item.variantId },
+                        { $inc: { "variants.$.stock": -item.quantity } }
+                    );
+                } else {
+                    await Product.findByIdAndUpdate(item.product_id, { $inc: { stock: -item.quantity } });
+                }
+            }));
+        } catch (stockError) {
+            console.error('Failed to update stock levels:', stockError);
+        }
 
         // Auto-update profile
         if (user) {

@@ -3,7 +3,10 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 import CartDrawer from "@/components/cart/CartDrawer";
+import MobileNav from "@/components/layout/MobileNav";
+import VisitorTracker from "@/components/analytics/VisitorTracker";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -51,6 +54,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  icons: {
+    icon: '/icon.jpg',
+  },
 };
 
 export default function RootLayout({
@@ -59,13 +65,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-gray-50 text-gray-900`}>
+    <html lang="en" suppressHydrationWarning className="overflow-x-hidden">
+      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-gray-50 text-gray-900 overflow-x-hidden w-full max-w-[100vw] pb-16 md:pb-0`}>
+        <VisitorTracker />
         <ToastProvider>
-          <CartProvider>
-            {children}
-            <CartDrawer />
-          </CartProvider>
+          <WishlistProvider>
+            <CartProvider>
+              {children}
+              <CartDrawer />
+              <MobileNav />
+            </CartProvider>
+          </WishlistProvider>
         </ToastProvider>
       </body>
     </html>

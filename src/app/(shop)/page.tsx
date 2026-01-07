@@ -16,14 +16,13 @@ const HeroSection = () => (
   <section className="w-full">
     <div className="relative w-full h-[85vh] overflow-hidden shadow-xl">
       <video
-        src="/slider-images/hero.mp4"
+        src="https://res.cloudinary.com/dg89ktcrg/video/upload/q_auto:good/v1767589109/hero_xd7ymu.mp4"
         className="w-full h-full object-cover"
         autoPlay
         loop
         muted
         playsInline
         preload="auto"
-        poster="/slider-images/slide-new-1.jpg"
       />
       <div className="absolute inset-0 bg-black/5" />
     </div>

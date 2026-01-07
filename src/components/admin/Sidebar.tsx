@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings, LogOut, ListOrdered, Droplets, Scale, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings, LogOut, ListOrdered, Droplets, Scale, ChevronLeft, ChevronRight, Star, Receipt, Clock } from 'lucide-react';
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -18,6 +18,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileOpen, closeMobile }: Side
     const MENU_ITEMS = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
         { name: 'Orders', icon: ShoppingCart, href: '/admin/orders' },
+        { name: 'Abandoned Carts', icon: Clock, href: '/admin/abandoned' },
         { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
         { name: 'Products', icon: Package, href: '/admin/products' },
         { name: 'Customers', icon: Users, href: '/admin/customers' },
@@ -26,7 +27,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileOpen, closeMobile }: Side
         { name: 'Fragrances', icon: Droplets, href: '/admin/fragrances' },
         { name: 'Formats', icon: Scale, href: '/admin/formats' },
         { name: 'Settings', icon: Settings, href: '/admin/settings' },
-        { name: 'Staff Management', icon: Users, href: '/admin/staff' }, // Changed Icon manually if needed, Users is fine or Shield
+        { name: 'Expenses', icon: Receipt, href: '/admin/expenses' },
+        { name: 'Staff Management', icon: Users, href: '/admin/staff' },
     ];
 
     return (
@@ -102,7 +104,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileOpen, closeMobile }: Side
                     <button
                         onClick={async () => {
                             try {
-                                await fetch('/api/auth/logout', { method: 'POST' });
+                                await fetch('/api/admin/logout', { method: 'POST' });
                                 window.location.href = '/admin/login';
                             } catch (error) {
                                 console.error('Logout failed', error);

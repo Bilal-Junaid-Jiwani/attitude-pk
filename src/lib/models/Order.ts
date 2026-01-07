@@ -14,8 +14,11 @@ const OrderSchema = new mongoose.Schema({
             name: { type: String, required: true },
             price: { type: Number, required: true },
             quantity: { type: Number, required: true, min: 1 },
+            costPerItem: { type: Number, default: 0 }, // Cost snapshot for profit calc
+            sku: { type: String },
             subCategory: { type: String },
             imageUrl: { type: String, required: true },
+            variantId: { type: String, required: false },
         }
     ],
     totalAmount: {
@@ -71,6 +74,13 @@ const OrderSchema = new mongoose.Schema({
     isArchived: {
         type: Boolean,
         default: false,
+    },
+    // Return tracking for loss calculation
+    returnDetails: {
+        returnShippingCost: { type: Number, default: 0 },
+        reason: { type: String },
+        refundAmount: { type: Number, default: 0 },
+        processedAt: { type: Date }
     },
 }, { timestamps: true });
 

@@ -8,7 +8,7 @@ import { sendOrderShippedEmail } from '@/lib/email/sendEmail';
 
 async function getUserIdFromToken() {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get('admin_token')?.value || cookieStore.get('token')?.value;
     if (!token) return null;
     try {
         const secret = process.env.JWT_SECRET || 'fallback_secret_key_change_me';

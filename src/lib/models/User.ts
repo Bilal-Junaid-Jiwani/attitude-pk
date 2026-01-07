@@ -62,6 +62,19 @@ const UserSchema = new mongoose.Schema({
     lastLogin: {
         type: Date,
     },
+    wishlist: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+    }],
+    addresses: [{
+        fullName: String,
+        address: String,
+        city: String,
+        postalCode: String,
+        phone: String,
+        label: { type: String, default: 'Home' },
+        isDefault: { type: Boolean, default: false }
+    }]
 });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);

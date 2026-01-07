@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Tag, User } from 'lucide-react';
 import Link from 'next/link';
+import Skeleton from '@/components/ui/Skeleton';
 
 interface UserProfile {
     _id: string;
@@ -105,8 +106,23 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-[400px] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1c524f]"></div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 md:p-8 space-y-8">
+                <div className="space-y-4">
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                </div>
+                <div className="flex items-center gap-6">
+                    <Skeleton className="w-20 h-20 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-4 w-32" />
+                    </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 max-w-2xl">
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl col-span-2" />
+                </div>
             </div>
         );
     }

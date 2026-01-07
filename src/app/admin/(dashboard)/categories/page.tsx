@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, X } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import AdminTableSkeleton from '@/components/ui/AdminTableSkeleton';
 
 interface SubCategory {
     name: string;
@@ -149,7 +150,7 @@ export default function CategoriesPage() {
         else setSelectedIds(selectedIds.filter(sid => sid !== id));
     };
 
-    if (loading) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>;
+    if (loading) return <div className="p-0"><AdminTableSkeleton /></div>;
 
     return (
         <div className="max-w-[1600px] mx-auto p-6 text-sm text-[#303030]">

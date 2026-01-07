@@ -11,6 +11,8 @@ export interface CartItem {
     quantity: number;
     subCategory?: string; // e.g. "Shampoo + Wash"
     originalPrice?: number; // Added to track discounts
+    variantId?: string; // For variant stock tracking
+    productId?: string; // Main Product ID (for API lookup)
 }
 
 interface CartContextType {

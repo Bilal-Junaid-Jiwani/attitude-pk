@@ -5,8 +5,9 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, CreditCard, Lock, AlertCircle, Check, X } from 'lucide-react';
+import { Loader2, CreditCard, Lock, AlertCircle, Check, X, ShieldCheck, RefreshCw, Truck } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function CheckoutPage() {
     const { cart, cartTotal, clearCart } = useCart();
@@ -59,6 +60,11 @@ export default function CheckoutPage() {
     // Shipping & Tax Config State
     const [shippingConfig, setShippingConfig] = useState({ standardRate: 200, freeShippingThreshold: 5000 });
     const [taxConfig, setTaxConfig] = useState({ enabled: false, rate: 0 });
+
+    // Address Book State
+    const [showAddressList, setShowAddressList] = useState(false);
+    const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+    const [loadingAddresses, setLoadingAddresses] = useState(false);
 
     useEffect(() => {
         // Fetch Settings
@@ -116,6 +122,24 @@ export default function CheckoutPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // Abandoned Cart Capture
+    const handleAbandonmentCapture = async () => {
+        if (!formData.email && !formData.phone) return;
+        try {
+            await fetch('/api/checkout/capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: formData.email,
+                    phone: formData.phone,
+                    name: formData.fullName,
+                    cartItems: cart,
+                    totalAmount: cartTotal
+                })
+            });
+        } catch (e) { } // Silent fail
+    };
+
     // Place Order for COD
     const placeCODOrder = async () => {
         try {
@@ -131,12 +155,13 @@ export default function CheckoutPage() {
             const orderData = {
                 user: userId,
                 items: cart.map(item => ({
-                    product_id: item._id,
+                    product_id: item.productId || item._id, // API expects Main Product ID
                     name: item.name,
                     price: item.price,
                     quantity: item.quantity,
                     subCategory: item.subCategory,
-                    imageUrl: item.imageUrl
+                    imageUrl: item.imageUrl,
+                    variantId: item.variantId // Pass variantId for stock tracking
                 })),
                 shippingAddress: formData,
                 paymentMethod: 'COD',
@@ -183,12 +208,13 @@ export default function CheckoutPage() {
         const orderData = {
             user: userId,
             items: cart.map(item => ({
-                product_id: item._id,
+                product_id: item.productId || item._id, // API expects Main Product ID
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
                 subCategory: item.subCategory,
-                imageUrl: item.imageUrl
+                imageUrl: item.imageUrl,
+                variantId: item.variantId // Pass variantId for stock tracking
             })),
             shippingAddress: formData,
             paymentMethod: method,
@@ -317,7 +343,56 @@ export default function CheckoutPage() {
     };
 
     if (initialLoading) {
-        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+        return (
+            <div className="min-h-screen bg-[#FAF9F6] py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto">
+                    <Skeleton className="h-10 w-48 mb-8 mx-auto md:mx-0" />
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                        {/* Left Skeleton */}
+                        <div className="lg:col-span-7 space-y-8">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                <Skeleton className="h-8 w-64" />
+                                <Skeleton className="h-12 w-full" />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Skeleton className="h-12 w-full" />
+                                    <Skeleton className="h-12 w-full" />
+                                </div>
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-48">
+                                <Skeleton className="h-8 w-48 mb-6" />
+                                <Skeleton className="h-16 w-full" />
+                            </div>
+                        </div>
+                        {/* Right Skeleton */}
+                        <div className="lg:col-span-5">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                <Skeleton className="h-8 w-40" />
+                                <div className="space-y-4">
+                                    <div className="flex gap-4">
+                                        <Skeleton className="w-16 h-16 rounded-md" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-3 w-1/2" />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <Skeleton className="w-16 h-16 rounded-md" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-3 w-1/2" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <Skeleton className="h-1 w-full" />
+                                <Skeleton className="h-6 w-full" />
+                                <Skeleton className="h-14 w-full rounded-xl" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (cart.length === 0) {
@@ -380,6 +455,77 @@ export default function CheckoutPage() {
                                 <span className="w-8 h-8 rounded-full bg-[#1c524f] text-white flex items-center justify-center text-sm">1</span>
                                 Shipping Information
                             </h2>
+
+                            {/* Address Book Selector */}
+                            <div className="mb-6">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (showAddressList) {
+                                            setShowAddressList(false);
+                                            return;
+                                        }
+
+                                        setLoadingAddresses(true);
+                                        try {
+                                            const res = await fetch('/api/user/address');
+                                            if (res.ok) {
+                                                const data = await res.json();
+                                                if (data.addresses && data.addresses.length > 0) {
+                                                    setSavedAddresses(data.addresses);
+                                                    setShowAddressList(true);
+                                                } else {
+                                                    addToast('No saved addresses found. Go to Profile to add one.', 'info');
+                                                }
+                                            }
+                                        } catch {
+                                            addToast('Failed to load addresses', 'error');
+                                        } finally {
+                                            setLoadingAddresses(false);
+                                        }
+                                    }}
+                                    className="text-sm font-bold text-[#1c524f] hover:underline flex items-center gap-1 mb-2"
+                                >
+                                    {showAddressList ? 'Hide Address Book' : 'Select from Address Book'}
+                                    {loadingAddresses && <Loader2 size={12} className="animate-spin" />}
+                                </button>
+
+                                {showAddressList && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        {savedAddresses.map((addr: any) => (
+                                            <div
+                                                key={addr._id}
+                                                onClick={() => {
+                                                    setFormData({
+                                                        ...formData,
+                                                        fullName: addr.fullName,
+                                                        phone: addr.phone,
+                                                        address: addr.address,
+                                                        city: addr.city,
+                                                        postalCode: addr.postalCode,
+                                                    });
+                                                    setShowAddressList(false);
+                                                    addToast('Address auto-filled!', 'success');
+                                                }}
+                                                className="border border-gray-200 rounded-xl p-3 cursor-pointer hover:border-[#1c524f] hover:bg-[#1c524f]/5 transition-all group"
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <span className="font-bold text-gray-800 flex items-center gap-2">
+                                                        {addr.label}
+                                                        {addr.isDefault && <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">Default</span>}
+                                                    </span>
+                                                    <span className="text-[#1c524f] opacity-0 group-hover:opacity-100 text-xs font-bold">Select</span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 mt-1 line-clamp-1">{addr.address}</p>
+                                                <p className="text-xs text-gray-500">{addr.city}</p>
+                                            </div>
+                                        ))}
+                                        <Link href="/profile/addresses" className="border border-dashed border-gray-300 rounded-xl p-3 flex items-center justify-center text-sm font-bold text-gray-500 hover:text-[#1c524f] hover:border-[#1c524f] transition-all">
+                                            + Manage Addresses
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
                             <form id="checkout-form" onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
@@ -402,6 +548,7 @@ export default function CheckoutPage() {
                                             required
                                             value={formData.email}
                                             onChange={handleChange}
+                                            onBlur={handleAbandonmentCapture}
                                             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#1c524f] focus:border-transparent outline-none transition-all"
                                             placeholder="ali@example.com"
                                         />
@@ -414,6 +561,7 @@ export default function CheckoutPage() {
                                             required
                                             value={formData.phone}
                                             onChange={handleChange}
+                                            onBlur={handleAbandonmentCapture}
                                             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#1c524f] focus:border-transparent outline-none transition-all"
                                             placeholder="0300 1234567"
                                         />
@@ -654,6 +802,21 @@ export default function CheckoutPage() {
                             <p className="text-xs text-center text-gray-400 mt-4">
                                 By placing your order, you agree to our Terms of Service and Privacy Policy.
                             </p>
+
+                            <div className="grid grid-cols-3 gap-2 mt-6 pt-6 border-t border-gray-100">
+                                <div className="flex flex-col items-center text-center gap-1 text-gray-500">
+                                    <ShieldCheck size={18} className="text-[#1c524f]" />
+                                    <span className="text-[10px] font-medium leading-tight">Secure Payment</span>
+                                </div>
+                                <div className="flex flex-col items-center text-center gap-1 text-gray-500">
+                                    <RefreshCw size={18} className="text-[#1c524f]" />
+                                    <span className="text-[10px] font-medium leading-tight">Easy Returns</span>
+                                </div>
+                                <div className="flex flex-col items-center text-center gap-1 text-gray-500">
+                                    <Truck size={18} className="text-[#1c524f]" />
+                                    <span className="text-[10px] font-medium leading-tight">Fast Delivery</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

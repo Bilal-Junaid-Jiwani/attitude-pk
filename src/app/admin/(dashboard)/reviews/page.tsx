@@ -5,6 +5,7 @@ import { Star, Trash2, Plus, RefreshCw, Loader2, MessageSquare } from 'lucide-re
 import toast from 'react-hot-toast';
 import CreateReviewModal from '@/components/admin/CreateReviewModal';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import AdminTableSkeleton from '@/components/ui/AdminTableSkeleton';
 
 interface Review {
     _id: string;
@@ -98,9 +99,7 @@ export default function AdminReviewsPage() {
             </div>
 
             {loading ? (
-                <div className="flex justify-center items-center py-20">
-                    <Loader2 className="animate-spin text-[#1c524f]" size={40} />
-                </div>
+                <AdminTableSkeleton />
             ) : reviews.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-xl shadow-sm border border-gray-100">
                     <MessageSquare size={48} className="mx-auto text-gray-300 mb-4" />

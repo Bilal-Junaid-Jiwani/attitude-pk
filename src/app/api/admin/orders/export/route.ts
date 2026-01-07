@@ -7,7 +7,7 @@ import User from '@/lib/models/User';
 
 async function getUserIdFromToken() {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get('admin_token')?.value || cookieStore.get('token')?.value;
 
     if (!token) return null;
 

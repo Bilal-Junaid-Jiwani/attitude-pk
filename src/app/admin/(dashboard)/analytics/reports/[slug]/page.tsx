@@ -9,7 +9,7 @@ import {
 import {
     ResponsiveContainer, BarChart, Bar, AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
-import CoolLoader from '@/components/ui/CoolLoader';
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function ReportPage() {
     const params = useParams();
@@ -42,7 +42,26 @@ export default function ReportPage() {
         fetchReport();
     }, [slug, startDate, endDate]);
 
-    if (loading) return <CoolLoader />;
+    if (loading) {
+        return (
+            <div className="max-w-[1200px] mx-auto p-6 space-y-6 bg-[#f0f0f0] min-h-screen">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded" />
+                    <Skeleton className="h-8 w-48" />
+                </div>
+                <Skeleton className="h-12 w-full bg-white rounded-lg" />
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <Skeleton className="h-8 w-32 mb-4" />
+                    <Skeleton className="h-[300px] w-full rounded" />
+                </div>
+                <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-3">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                </div>
+            </div>
+        );
+    }
     if (!data) return <div className="p-10 text-center">Failed to load report.</div>;
 
     // --- Report Configuration ---

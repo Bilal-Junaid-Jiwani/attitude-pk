@@ -7,7 +7,7 @@ import User from '@/lib/models/User';
 
 async function getUserIdFromToken() {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get('admin_token')?.value || cookieStore.get('token')?.value;
 
     if (!token) return null;
 
@@ -78,6 +78,7 @@ export async function GET(req: Request) {
                 orderNumber: `#${order._id.toString().toUpperCase()}`,
                 date: order.createdAt,
                 customer: customerName,
+                phone: order.shippingAddress?.phone || '',
                 total: order.totalAmount,
                 paymentStatus,
                 fulfillmentStatus,

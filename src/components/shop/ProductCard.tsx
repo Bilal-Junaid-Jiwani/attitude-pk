@@ -3,8 +3,9 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Heart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 
 export interface Product {
     _id: string;
@@ -20,6 +21,7 @@ export interface Product {
 
 const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();
+    const { isInWishlist, toggleWishlist } = useWishlist();
     const secondImage = product.images?.[1];
 
     const hasDiscount = (product.compareAtPrice || 0) > product.price;
@@ -30,6 +32,8 @@ const ProductCard = ({ product }: { product: Product }) => {
     const discountAmount = hasDiscount
         ? product.compareAtPrice! - product.price
         : 0;
+
+    const inWishlist = isInWishlist(product._id);
 
     return (
         <div className="group flex flex-col items-center text-center bg-white p-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 animate-in fade-in zoom-in duration-500 relative border border-transparent hover:border-gray-100">
@@ -51,6 +55,19 @@ const ProductCard = ({ product }: { product: Product }) => {
                     </span>
                 )}
             </div>
+
+            {/* Wishlist Button */}
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleWishlist(product._id);
+                }}
+                className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm"
+                title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+            >
+                <Heart size={18} className={inWishlist ? "fill-red-500 text-red-500" : ""} />
+            </button>
 
             {/* Image Area */}
             <Link href={`/product/${product._id}`} className="block relative aspect-[4/5] w-full mb-3 overflow-hidden bg-transparent rounded-lg cursor-pointer">

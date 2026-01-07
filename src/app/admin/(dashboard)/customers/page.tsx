@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, MapPin, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
-import CoolLoader from '@/components/ui/CoolLoader';
+import AdminTableSkeleton from '@/components/ui/AdminTableSkeleton';
 
 interface Customer {
     _id: string;
@@ -118,7 +118,7 @@ export default function CustomersPage() {
         else setSelectedIds(selectedIds.filter(sid => sid !== id));
     };
 
-    if (loading && customers.length === 0) return <CoolLoader />;
+    if (loading && customers.length === 0) return <AdminTableSkeleton />;
 
     return (
         <div className="max-w-[1600px] mx-auto p-6 text-sm text-[#303030]">

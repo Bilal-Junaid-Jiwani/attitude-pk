@@ -8,6 +8,7 @@ import CoolLoader from '../ui/CoolLoader';
 import { useCart } from '@/context/CartContext';
 
 import ProductCard from '@/components/shop/ProductCard';
+import ProductCardSkeleton from '../ui/ProductCardSkeleton';
 
 interface Product {
     _id: string;
@@ -83,8 +84,7 @@ const FeaturedPicks = () => {
         return tabName === activeTab;
     });
 
-    if (loading) return <CoolLoader />;
-    if (products.length === 0) return null;
+    const isLoading = loading;
 
     return (
         <section id="featured-picks" className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-white shadow-sm my-16">
@@ -95,7 +95,7 @@ const FeaturedPicks = () => {
                 </div>
 
                 {/* Tabs */}
-                {tabs.length > 0 && (
+                {!isLoading && tabs.length > 0 && (
                     <div className="flex overflow-x-auto pb-2 md:pb-0 gap-3 no-scrollbar items-center">
                         {tabs.map((tab) => (
                             <button
@@ -115,7 +115,14 @@ const FeaturedPicks = () => {
 
             {/* Product Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 min-h-[400px]">
-                {filteredProducts.length > 0 ? (
+                {isLoading ? (
+                    // Skeleton Loading
+                    Array.from({ length: 4 }).map((_, idx) => (
+                        <div key={idx} className="h-[400px]">
+                            <ProductCardSkeleton />
+                        </div>
+                    ))
+                ) : filteredProducts.length > 0 ? (
                     filteredProducts.map((product) => (
                         // @ts-ignore - ProductCard expects a compatible interface
                         <ProductCard key={product._id} product={product as any} />

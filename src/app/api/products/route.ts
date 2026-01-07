@@ -9,10 +9,15 @@ import Format from '@/lib/models/Format';
 let cachedProducts: { time: number; data: any } | null = null;
 const CACHE_DURATION = 60 * 1000 * 5; // 5 minutes
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        // Check cache
-        if (cachedProducts && (Date.now() - cachedProducts.time < CACHE_DURATION)) {
+        const { searchParams } = new URL(request.url);
+        const limitParam = searchParams.get('limit');
+        const limit = limitParam ? parseInt(limitParam) : 0;
+
+        // Check cache (skip if limit is present to ensure variety or simplicity, or cache keyed by limit)
+        // For simplicity, bypass cache if limit is set, or modify cache key.
+        if (!limit && cachedProducts && (Date.now() - cachedProducts.time < CACHE_DURATION)) {
             return NextResponse.json(cachedProducts.data);
         }
 
@@ -20,14 +25,19 @@ export async function GET() {
 
         // Ensure models are registered
         const _models = [Category, Fragrance, Format]; // Access to force registration
-        console.log('Models registered:', [Category.modelName, Fragrance.modelName, Format.modelName]);
 
-        const products = await Product.find({ isActive: true })
+        const query = Product.find({ isActive: true })
             .setOptions({ strictPopulate: false })
             .populate({ path: 'category', select: 'name', model: Category, strictPopulate: false })
             .populate({ path: 'fragrance', select: 'name', model: Fragrance, strictPopulate: false })
             .populate({ path: 'format', select: 'name', model: Format, strictPopulate: false })
             .sort({ createdAt: -1 });
+
+        if (limit > 0) {
+            query.limit(limit);
+        }
+
+        const products = await query.exec();
 
         console.log(`API check: Found ${products.length} active products`);
         if (products.length > 0) {

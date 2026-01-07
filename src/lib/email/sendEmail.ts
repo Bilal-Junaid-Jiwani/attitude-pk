@@ -229,3 +229,53 @@ export const sendOrderDeliveredEmail = async (to: string, order: any) => {
     `;
     return sendEmail({ to, subject, html });
 };
+
+export const sendAbandonedCartEmail = async (to: string, cart: any) => {
+    const subject = `Your Cart is Waiting - Attitude.pk`;
+    const customerName = cart.name || 'Valued Customer';
+
+    // Calculate total if not present (though our model has it)
+    const totalAmount = cart.totalAmount || 0;
+
+    const itemsHtml = cart.cartItems.map((item: any) => `
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px; color: #333;">
+                ${item.name}
+            </td>
+            <td style="padding: 10px; color: #666; font-size: 14px; text-align: center;">x${item.quantity}</td>
+            <td style="padding: 10px; text-align: right; color: #333;">Rs. ${item.price.toLocaleString()}</td>
+        </tr>
+    `).join('');
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+        <div style="background-color: #1c524f; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">Don't forget your items!</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="color: #666; font-size: 16px;">Hi <strong>${customerName}</strong>,</p>
+            <p style="color: #666; line-height: 1.5;">We noticed you left some great items in your cart. They are selling out fast, so secure them now!</p>
+            
+            <h3 style="color: #333; margin-top: 30px; border-bottom: 2px solid #1c524f; padding-bottom: 10px;">Your Cart</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                ${itemsHtml}
+                <tr>
+                    <td colspan="2" style="padding: 10px; font-weight: bold; border-top: 2px solid #eee;">Total</td>
+                    <td style="padding: 10px; text-align: right; font-weight: bold; border-top: 2px solid #eee; color: #1c524f;">Rs. ${totalAmount.toLocaleString()}</td>
+                </tr>
+            </table>
+
+            <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
+                <a href="${BASE_URL}/checkout" style="display: inline-block; padding: 14px 28px; background-color: #1c524f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Complete Your Order</a>
+            </div>
+            
+            <p style="text-align: center; color: #999; font-size: 14px;">(Link takes you directly to checkout)</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; color: #aaa; font-size: 12px;">
+            <p>Attitude.pk - Premium Fragrances</p>
+        </div>
+    </div>
+    `;
+
+    return sendEmail({ to, subject, html });
+};

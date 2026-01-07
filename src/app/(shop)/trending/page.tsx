@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ProductCard from '@/components/shop/ProductCard';
-import CoolLoader from '@/components/ui/CoolLoader';
+import ProductCardSkeleton from '@/components/ui/ProductCardSkeleton';
 import { Product } from '@/types/product';
 
 const TrendingPage = () => {
@@ -51,7 +51,25 @@ const TrendingPage = () => {
         fetchTrending(nextPage);
     };
 
-    if (loading) return <CoolLoader />;
+    if (loading) {
+        return (
+            <div className="bg-[#FAF9F6] min-h-screen py-16 px-6 lg:px-12">
+                <div className="max-w-7xl mx-auto">
+                    <h1 className="text-4xl md:text-5xl font-heading font-bold text-[#1c524f] mb-4 text-center">
+                        Trending Products
+                    </h1>
+                    <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+                        Discover our most loved products, rated highly by customers like you.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                        {[...Array(8)].map((_, i) => (
+                            <ProductCardSkeleton key={i} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-[#FAF9F6] min-h-screen py-16 px-6 lg:px-12">

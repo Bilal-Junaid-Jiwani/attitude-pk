@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Minus, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import EmptyState from '@/components/ui/EmptyState';
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, cartTotal } = useCart();
@@ -42,17 +43,13 @@ export default function CartPage() {
     if (cart.length === 0) {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <Trash2 size={40} className="text-gray-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
-                <p className="text-gray-500 mb-8 max-w-md">
-                    Looks like you haven't added anything to your cart yet.
-                    Explore our products and find something you love!
-                </p>
-                <Link href="/" className="bg-[#1c524f] text-white px-8 py-3 rounded-md font-bold hover:bg-[#153e3c] transition-colors">
-                    Start Shopping
-                </Link>
+                <EmptyState
+                    icon={Trash2}
+                    title="Your cart is empty"
+                    description="Looks like you haven't added anything to your cart yet. Explore our products and find something you love!"
+                    actionLabel="Start Shopping"
+                    actionLink="/"
+                />
             </div>
         );
     }

@@ -4,22 +4,33 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Calendar, ChevronDown, Check, MoreHorizontal, Filter,
-    ArrowUpDown, Search, Download, Upload, X
+    ArrowUpDown, Search, Download, Upload, X, MessageCircle
 } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
-import CoolLoader from '@/components/ui/CoolLoader';
+import AdminTableSkeleton from '@/components/ui/AdminTableSkeleton';
 
 interface Order {
     _id: string;
     orderNumber: string;
     date: string;
     customer: string;
+    phone?: string;
     total: number;
     paymentStatus: string;
     fulfillmentStatus: string;
     fullStatus: string;
     itemsCount: number;
     paymentMethod: string;
+    shippingAddress?: any;
+    status: string;
+    isPaid: boolean;
+    totalAmount: number;
+    subtotal: number;
+    discount: number;
+    couponCode: string;
+    shippingCost: number;
+    items?: any[];
+    createdAt: string;
 }
 
 interface Stats {
@@ -40,7 +51,7 @@ export default function AdminOrdersPage() {
     const { addToast } = useToast();
 
     // Initial State from URL
-    const initialRange = searchParams.get('range') || 'today';
+    const initialRange = searchParams.get('range') || 'all'; // Changed default to 'all'
     const initialStart = searchParams.get('startDate') || '';
     const initialEnd = searchParams.get('endDate') || '';
 
@@ -51,7 +62,20 @@ export default function AdminOrdersPage() {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Date Filtering State
-    const [dateRangeLabel, setDateRangeLabel] = useState('Today');
+    // Determine initial label based on initialRange
+    const getInitialLabel = (range: string) => {
+        switch (range) {
+            case 'today': return 'Today';
+            case 'yesterday': return 'Yesterday';
+            case '7d': return 'Last 7 Days';
+            case '30d': return 'Last 30 Days';
+            case 'all': return 'All Time';
+            case 'custom': return 'Custom Range';
+            default: return 'All Time';
+        }
+    };
+
+    const [dateRangeLabel, setDateRangeLabel] = useState(getInitialLabel(initialRange));
     const [dateRange, setDateRange] = useState(initialRange);
     const [startDate, setStartDate] = useState(initialStart);
     const [endDate, setEndDate] = useState(initialEnd);
@@ -276,7 +300,7 @@ export default function AdminOrdersPage() {
                         order.totalAmount, order.subtotal, order.discount, order.couponCode, order.shippingCost,
                         customer?.fullName, customer?.email, customer?.phone, customer?.address, customer?.city, customer?.postalCode,
                         '', '', '', '', ''
-                    ].map(f => `"${f !== undefined && f !== null ? f : ''}"`).join(','));
+                    ].map((f: any) => `"${f !== undefined && f !== null ? f : ''}"`).join(','));
                 } else {
                     for (const item of order.items) {
                         rows.push([
@@ -284,7 +308,7 @@ export default function AdminOrdersPage() {
                             order.totalAmount, order.subtotal, order.discount, order.couponCode, order.shippingCost,
                             customer?.fullName, customer?.email, customer?.phone, customer?.address, customer?.city, customer?.postalCode,
                             item.name, item.product_id, item.quantity, item.price, item.subCategory
-                        ].map(f => `"${f !== undefined && f !== null ? f : ''}"`).join(','));
+                        ].map((f: any) => `"${f !== undefined && f !== null ? f : ''}"`).join(','));
                     }
                 }
             }
@@ -325,99 +349,98 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Stats Cards - Functioning as Date Filter */}
-            {stats && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-4">
-                    <div className="flex flex-col md:flex-row md:items-center md:divide-x divide-gray-200 relative gap-4 md:gap-0">
+            {/* Stats Cards - Functioning as Date Filter */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:divide-x divide-gray-200 relative gap-4 md:gap-0">
 
-                        {/* Interactive Date Indicator */}
-                        <div ref={dateMenuRef} className="px-6 py-2 min-w-[160px] relative">
-                            <button
-                                onClick={() => setShowDateMenu(!showDateMenu)}
-                                className="flex items-center gap-3 w-full text-left group hover:bg-gray-50 rounded-lg p-2 -ml-2 transition-colors"
-                            >
-                                <div className="p-2 bg-gray-100 rounded text-gray-600 group-hover:bg-white group-hover:shadow-sm">
-                                    <Calendar size={20} />
+                    {/* Interactive Date Indicator */}
+                    <div ref={dateMenuRef} className="px-6 py-2 min-w-[160px] relative">
+                        <button
+                            onClick={() => setShowDateMenu(!showDateMenu)}
+                            className="flex items-center gap-3 w-full text-left group hover:bg-gray-50 rounded-lg p-2 -ml-2 transition-colors"
+                        >
+                            <div className="p-2 bg-gray-100 rounded text-gray-600 group-hover:bg-white group-hover:shadow-sm">
+                                <Calendar size={20} />
+                            </div>
+                            <div>
+                                <span className="block text-xs text-gray-400 font-medium">Filter by</span>
+                                <span className="font-bold text-gray-800 flex items-center gap-1">
+                                    {dateRangeLabel} <ChevronDown size={14} />
+                                </span>
+                            </div>
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {showDateMenu && (
+                            <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-20 p-2 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="space-y-1">
+                                    {[
+                                        { label: 'Today', val: 'today' },
+                                        { label: 'Yesterday', val: 'yesterday' },
+                                        { label: 'Last 7 Days', val: '7d' },
+                                        { label: 'Last 30 Days', val: '30d' },
+                                        { label: 'All Time', val: 'all' },
+                                        { label: 'Custom...', val: 'custom' },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.val}
+                                            onClick={() => applyPreset(opt.val)}
+                                            className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${dateRange === opt.val
+                                                ? 'bg-gray-100 text-[#008060] font-bold'
+                                                : 'text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
                                 </div>
-                                <div>
-                                    <span className="block text-xs text-gray-400 font-medium">Filter by</span>
-                                    <span className="font-bold text-gray-800 flex items-center gap-1">
-                                        {dateRangeLabel} <ChevronDown size={14} />
-                                    </span>
-                                </div>
-                            </button>
 
-                            {/* Dropdown Menu */}
-                            {showDateMenu && (
-                                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-20 p-2 animate-in fade-in zoom-in-95 duration-100">
-                                    <div className="space-y-1">
-                                        {[
-                                            { label: 'Today', val: 'today' },
-                                            { label: 'Yesterday', val: 'yesterday' },
-                                            { label: 'Last 7 Days', val: '7d' },
-                                            { label: 'Last 30 Days', val: '30d' },
-                                            { label: 'All Time', val: 'all' },
-                                            { label: 'Custom...', val: 'custom' },
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.val}
-                                                onClick={() => applyPreset(opt.val)}
-                                                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${dateRange === opt.val
-                                                    ? 'bg-gray-100 text-[#008060] font-bold'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                                    }`}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Custom Inputs */}
-                                    {isCustom && (
-                                        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div>
-                                                    <label className="text-[10px] text-gray-400 font-bold uppercase">Start</label>
-                                                    <input
-                                                        type="date"
-                                                        value={startDate}
-                                                        onChange={(e) => setStartDate(e.target.value)}
-                                                        className="w-full text-xs p-1.5 border rounded focus:ring-1 focus:ring-[#008060] outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] text-gray-400 font-bold uppercase">End</label>
-                                                    <input
-                                                        type="date"
-                                                        value={endDate}
-                                                        onChange={(e) => setEndDate(e.target.value)}
-                                                        className="w-full text-xs p-1.5 border rounded focus:ring-1 focus:ring-[#008060] outline-none"
-                                                    />
-                                                </div>
+                                {/* Custom Inputs */}
+                                {isCustom && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[10px] text-gray-400 font-bold uppercase">Start</label>
+                                                <input
+                                                    type="date"
+                                                    value={startDate}
+                                                    onChange={(e) => setStartDate(e.target.value)}
+                                                    className="w-full text-xs p-1.5 border rounded focus:ring-1 focus:ring-[#008060] outline-none"
+                                                />
                                             </div>
-                                            <button
-                                                onClick={handleCustomApply}
-                                                className="w-full py-2 bg-[#008060] hover:bg-[#006e52] text-white text-xs font-bold rounded shadow-sm transition-colors"
-                                            >
-                                                Apply Date Range
-                                            </button>
+                                            <div>
+                                                <label className="text-[10px] text-gray-400 font-bold uppercase">End</label>
+                                                <input
+                                                    type="date"
+                                                    value={endDate}
+                                                    onChange={(e) => setEndDate(e.target.value)}
+                                                    className="w-full text-xs p-1.5 border rounded focus:ring-1 focus:ring-[#008060] outline-none"
+                                                />
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                        <button
+                                            onClick={handleCustomApply}
+                                            className="w-full py-2 bg-[#008060] hover:bg-[#006e52] text-white text-xs font-bold rounded shadow-sm transition-colors"
+                                        >
+                                            Apply Date Range
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
-                        {/* Stats Items */}
-                        <div className="flex-1 grid grid-cols-2 md:flex md:divide-x divide-gray-200">
-                            <StatItem label="Orders" value={stats.today.count} />
-                            <StatItem label="Items ordered" value={stats.today.items} />
-                            <StatItem label="Returns" value={stats.today.returns} />
-                            <StatItem label="Fulfilled" value={stats.today.fulfilled} />
-                            <StatItem label="Delivered" value={stats.today.delivered} />
-                            <StatItem label="Cancelled" value={stats.today.cancelled} isLast />
-                        </div>
+                    {/* Stats Items */}
+                    <div className="flex-1 grid grid-cols-2 md:flex md:divide-x divide-gray-200">
+                        <StatItem label="Orders" value={stats?.today.count || 0} />
+                        <StatItem label="Items ordered" value={stats?.today.items || 0} />
+                        <StatItem label="Returns" value={stats?.today.returns || 0} />
+                        <StatItem label="Fulfilled" value={stats?.today.fulfilled || 0} />
+                        <StatItem label="Delivered" value={stats?.today.delivered || 0} />
+                        <StatItem label="Cancelled" value={stats?.today.cancelled || 0} isLast />
                     </div>
                 </div>
-            )}
+            </div>
 
             {/* Main Content Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
@@ -486,7 +509,7 @@ export default function AdminOrdersPage() {
 
                 {/* Table */}
                 {loading ? (
-                    <div className="p-8"><CoolLoader /></div>
+                    <div className="p-0"><AdminTableSkeleton /></div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
@@ -547,7 +570,22 @@ export default function AdminOrdersPage() {
                                                         weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: true, day: 'numeric', month: 'short'
                                                     })}
                                                 </td>
-                                                <td className={`p-4 font-medium ${rowClass}`}>{order.customer}</td>
+                                                <td className={`p-4 font-medium ${rowClass}`}>
+                                                    <div className="flex flex-col">
+                                                        <span>{order.customer}</span>
+                                                        {order.phone && (
+                                                            <a
+                                                                href={`https://wa.me/${order.phone.replace(/\D/g, '').replace(/^0/, '92')}?text=${encodeURIComponent(`Assalam-o-Alaikum ${order.customer}, Attitude PK se order karne ka shukriya. \n\nHum apka Order #${order.orderNumber} confirm karna chahte hain.\n\nKya hum ise dispatch kar dein?\n\nShukriya,\nTeam Attitude PK`)}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-xs text-[#25D366] font-semibold flex items-center gap-1 hover:underline mt-0.5"
+                                                            >
+                                                                <MessageCircle size={12} /> WhatsApp
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td className={`p-4 ${rowClass} text-gray-500`}>Online Store</td>
                                                 <td className={`p-4 text-right font-medium ${rowClass}`}>Rs. {(order.total || 0).toLocaleString()}</td>
                                                 <td className="p-4">

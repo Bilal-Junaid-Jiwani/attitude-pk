@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Printer, MoreHorizontal, MapPin, Mail, Phone, ExternalLink, ShieldCheck } from 'lucide-react';
-import CoolLoader from '@/components/ui/CoolLoader';
+import Skeleton from '@/components/ui/Skeleton';
 import { toast } from 'react-hot-toast';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
@@ -21,6 +21,14 @@ export default function OrderDetailPage() {
 
     // Tracking state
     const [trackingValues, setTrackingValues] = useState({ trackingId: '', courierCompany: '' });
+
+    // Return modal state
+    const [returnModal, setReturnModal] = useState(false);
+    const [returnDetails, setReturnDetails] = useState({
+        refundAmount: 0,
+        returnShippingCost: 0,
+        reason: ''
+    });
 
     useEffect(() => {
         if (order) {
@@ -64,6 +72,33 @@ export default function OrderDetailPage() {
             toast.success(`Order ${field === 'isPaid' ? 'payment' : 'status'} updated!`);
         } catch (error) {
             toast.error('Failed to update order');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    // Handle return with details
+    const handleReturnOrder = async () => {
+        setUpdating(true);
+        try {
+            const res = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'Returned',
+                    returnDetails: {
+                        ...returnDetails,
+                        processedAt: new Date()
+                    }
+                }),
+            });
+            if (!res.ok) throw new Error('Update failed');
+            const updated = await res.json();
+            setOrder(updated);
+            setReturnModal(false);
+            toast.success('Order marked as returned with loss details!');
+        } catch (error) {
+            toast.error('Failed to process return');
         } finally {
             setUpdating(false);
         }
@@ -161,7 +196,82 @@ export default function OrderDetailPage() {
         window.print();
     };
 
-    if (loading) return <CoolLoader />;
+    if (loading) {
+        return (
+            <div className="p-6 max-w-6xl mx-auto bg-[#F6F6F7] min-h-screen">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
+                    <div className="flex items-center gap-4 w-full">
+                        <Skeleton className="w-10 h-10 rounded shadow-sm" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-6 w-48" />
+                            <Skeleton className="h-4 w-64" />
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-9 w-24 rounded" />
+                        <Skeleton className="h-9 w-24 rounded" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Items Card Skeleton */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div className="flex justify-between mb-4">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-4 w-24" />
+                            </div>
+                            <div className="space-y-4">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="flex gap-4">
+                                        <Skeleton className="w-12 h-12 rounded" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-48" />
+                                            <Skeleton className="h-3 w-24" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Payment Card Skeleton */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div className="flex justify-between mb-4">
+                                <Skeleton className="h-6 w-40" />
+                                <Skeleton className="h-4 w-16" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Sidebar Skeletons */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+                            <Skeleton className="h-6 w-40" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+                            <Skeleton className="h-6 w-32" />
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="w-10 h-10 rounded-full" />
+                                <div className="space-y-1">
+                                    <Skeleton className="h-4 w-32" />
+                                    <Skeleton className="h-3 w-48" />
+                                </div>
+                            </div>
+                            <Skeleton className="h-20 w-full" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
     if (!order) return <div className="p-8 text-center">Order not found</div>;
 
     // Derived logic
@@ -171,6 +281,85 @@ export default function OrderDetailPage() {
 
     return (
         <>
+            {/* Return Details Modal */}
+            {returnModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="bg-orange-50 border-b border-orange-100 px-6 py-4">
+                            <h3 className="text-lg font-bold text-orange-800">Mark as Returned</h3>
+                            <p className="text-sm text-orange-600">Customer refused or unavailable - product coming back</p>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Shipping Cost Paid (Rs.)</label>
+                                <input
+                                    type="number"
+                                    value={returnDetails.returnShippingCost}
+                                    onChange={(e) => setReturnDetails({
+                                        ...returnDetails,
+                                        returnShippingCost: parseFloat(e.target.value) || 0
+                                    })}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-semibold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                                    placeholder="0"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Courier charges (both ways) - your direct loss</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Return Reason</label>
+                                <select
+                                    value={returnDetails.reason}
+                                    onChange={(e) => setReturnDetails({
+                                        ...returnDetails,
+                                        reason: e.target.value
+                                    })}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                                >
+                                    <option value="">Select reason...</option>
+                                    <option value="Customer Refused">Customer Refused Delivery</option>
+                                    <option value="No Response">Customer Not Responding</option>
+                                    <option value="Wrong Address">Wrong/Incomplete Address</option>
+                                    <option value="Not Available">Customer Not Available</option>
+                                    <option value="Changed Mind">Changed Mind After Dispatch</option>
+                                    <option value="Fake Order">Fake/Prank Order</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div className="bg-red-50 p-4 rounded-lg">
+                                <p className="text-xs text-red-700 font-medium mb-2">📊 Return Loss Breakdown:</p>
+                                <div className="text-sm space-y-1">
+                                    <div className="flex justify-between"><span>Shipping Cost:</span><span className="font-semibold">Rs. {returnDetails.returnShippingCost.toLocaleString()}</span></div>
+                                    <div className="flex justify-between text-gray-500"><span>+ Packaging (from expenses)</span></div>
+                                    <div className="flex justify-between text-gray-500"><span>+ Advertising (from expenses)</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 px-6 py-4 flex justify-between items-center">
+                            <div className="text-sm">
+                                <span className="text-gray-600">Direct Shipping Loss: </span>
+                                <span className="font-bold text-red-600">
+                                    Rs. {returnDetails.returnShippingCost.toLocaleString()}
+                                </span>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setReturnModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleReturnOrder}
+                                    disabled={updating}
+                                    className="px-6 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition-colors disabled:opacity-50"
+                                >
+                                    {updating ? 'Processing...' : 'Mark as Returned'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="p-6 max-w-6xl mx-auto bg-[#F6F6F7] min-h-screen text-[#303030] print:hidden">
                 {/* Top Navigation */}
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
@@ -207,7 +396,14 @@ export default function OrderDetailPage() {
                                     </button>
                                 )}
                                 <button
-                                    onClick={() => handleUpdateStatus('status', 'Returned')}
+                                    onClick={() => {
+                                        setReturnDetails({
+                                            refundAmount: order.totalAmount || 0,
+                                            returnShippingCost: 0,
+                                            reason: ''
+                                        });
+                                        setReturnModal(true);
+                                    }}
                                     disabled={updating}
                                     className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3"
                                 >

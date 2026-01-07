@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Save, Truck, DollarSign, Tag, RefreshCcw, Plus, Trash2, X } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import Skeleton from '@/components/ui/Skeleton';
 
 interface SubscribeConfig {
     enabled: boolean;
@@ -226,7 +227,42 @@ export default function SettingsPage() {
         }
     };
 
-    if (loading) return <div className="p-8">Loading settings...</div>;
+    if (loading) {
+        // Skeleton mock for settings
+        const SettingSectionSkeleton = () => (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-8">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-md" />
+                    <div className="space-y-1">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                    </div>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="flex justify-between">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-6 w-12 rounded-full" />
+                    </div>
+                    <div className="space-y-4">
+                        <Skeleton className="h-10 w-full rounded" />
+                        <Skeleton className="h-10 w-full rounded" />
+                    </div>
+                </div>
+            </div>
+        );
+
+        return (
+            <div className="max-w-4xl mx-auto pb-20 space-y-8 p-6">
+                <div className="space-y-2 mb-8">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                </div>
+                <SettingSectionSkeleton />
+                <SettingSectionSkeleton />
+                <SettingSectionSkeleton />
+            </div>
+        )
+    }
 
     const SectionHeader = ({ icon: Icon, title, description }: any) => (
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center gap-3">

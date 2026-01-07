@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { User, Package, LogOut, Settings, ArrowLeft } from 'lucide-react';
+import { User, Package, LogOut, ChevronRight, Heart, MapPin, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 
 const SIDEBAR_LINKS = [
     { label: 'My Profile', href: '/profile', icon: User },
     { label: 'Order History', href: '/profile/orders', icon: Package },
+    { label: 'Address Book', href: '/profile/addresses', icon: MapPin },
 ];
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {

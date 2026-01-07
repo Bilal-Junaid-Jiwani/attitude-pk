@@ -61,7 +61,7 @@ export async function DELETE(req: Request) {
 
         // 2. Prevent Self-Deletion
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        const token = cookieStore.get('admin_token')?.value || cookieStore.get('token')?.value;
         if (token) {
             const secret = process.env.JWT_SECRET || 'fallback_secret_key_change_me';
             const decoded: any = jwt.verify(token, secret);

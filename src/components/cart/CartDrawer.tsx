@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { X, Minus, Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
+import EmptyState from '../ui/EmptyState';
+import { ShoppingBag } from 'lucide-react';
 
 export default function CartDrawer() {
     const { cart, removeFromCart, updateQuantity, cartTotal, isCartOpen, closeCart } = useCart();
@@ -48,6 +50,20 @@ export default function CartDrawer() {
             }
         };
         fetchSettings();
+        fetchSettings();
+    }, []);
+
+    // Fetch Recommendations
+    // Fetch Recommendations immediately on mount (background)
+    const [recommended, setRecommended] = React.useState<any[]>([]);
+    useEffect(() => {
+        fetch('/api/products?limit=4')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setRecommended(data);
+                else if (data.products) setRecommended(data.products);
+            })
+            .catch(err => console.error('Failed to load recommendations', err));
     }, []);
 
     const FREE_SHIPPING_THRESHOLD = shippingConfig?.freeShippingThreshold ?? 5000;
@@ -105,8 +121,14 @@ export default function CartDrawer() {
                         {/* Cart Items */}
                         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
                             {cart.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
-                                    <p className="text-lg">Your cart is empty.</p>
+                                <div className="h-full flex flex-col items-center justify-center">
+                                    <EmptyState
+                                        icon={ShoppingBag}
+                                        title="Your cart feels lonely"
+                                        description="It looks like you haven't added anything to your cart yet. Browse our collections to find something you love."
+                                        actionLabel="Start Shopping"
+                                        actionLink="/"
+                                    />
                                 </div>
                             ) : (
                                 cart.map((item) => (
@@ -170,6 +192,42 @@ export default function CartDrawer() {
                                         </div>
                                     </div>
                                 ))
+                            )}
+
+                            {/* Recommendations */}
+                            {recommended.length > 0 && (
+                                <div className="mt-8 pt-6 border-t border-gray-100">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">You May Also Like</h3>
+                                    <div className="space-y-4">
+                                        {recommended.slice(0, 3).map((prod: any) => (
+                                            <div key={prod._id} className="flex gap-4 group cursor-pointer">
+                                                <div className="relative w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                                                    <Image
+                                                        src={prod.imageUrl}
+                                                        alt={prod.name}
+                                                        fill
+                                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    />
+                                                </div>
+                                                <div className="flex-1 flex flex-col justify-center">
+                                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-1 group-hover:text-[#1c524f] transition-colors">{prod.name}</h4>
+                                                    <p className="text-sm text-gray-500 mb-1">Rs. {prod.price.toLocaleString()}</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            // Add to cart logic (simplified)
+                                                            // Note: Real logic needs variant selection, but assuming base product for now
+                                                            // Or redirect to product page
+                                                            window.location.href = `/product/${prod._id}`;
+                                                        }}
+                                                        className="text-xs font-bold text-[#1c524f] hover:underline text-left"
+                                                    >
+                                                        View Product
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
 

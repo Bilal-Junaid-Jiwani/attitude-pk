@@ -8,7 +8,7 @@ import {
     Coins, ShoppingCart, Truck, AlertOctagon, RotateCcw,
     ArrowUp, ArrowDown, Minus, ArrowRight, XCircle, CheckCircle
 } from 'lucide-react';
-import CoolLoader from '@/components/ui/CoolLoader';
+import Skeleton from '@/components/ui/Skeleton';
 import {
     ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
@@ -40,6 +40,12 @@ interface AnalyticsData {
     };
     history: any[];
     recentOrders: OrderSummary[];
+    lowStockProducts?: {
+        _id: string;
+        name: string;
+        stock: number;
+        images: string[];
+    }[];
 }
 
 const MetricCard = ({ title, metric, prefix = '', icon: Icon, colorClass, bgClass }: { title: string, metric: Metric, prefix?: string, icon: any, colorClass: string, bgClass: string }) => {
@@ -219,8 +225,56 @@ const AdminDashboard = () => {
                 </div>
 
                 {loading ? (
-                    <div className="h-96 flex items-center justify-center">
-                        <CoolLoader />
+                    <div className="animate-in fade-in duration-500">
+                        {/* Metrics Grid Skeleton */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between h-[140px]">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-10 w-10 rounded-xl" />
+                                    </div>
+                                    <div>
+                                        <Skeleton className="h-8 w-32 mb-2" />
+                                        <Skeleton className="h-3 w-20" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Charts & Recent Orders Skeleton */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Chart Skeleton */}
+                            <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-[400px]">
+                                <div className="flex justify-between items-center mb-6">
+                                    <Skeleton className="h-6 w-32" />
+                                    <Skeleton className="h-5 w-40 rounded-full" />
+                                </div>
+                                <Skeleton className="h-[300px] w-full rounded" />
+                            </div>
+
+                            {/* Recent Orders Skeleton */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-[450px] p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <Skeleton className="h-6 w-32" />
+                                    <Skeleton className="h-4 w-16" />
+                                </div>
+                                <div className="space-y-4">
+                                    {[...Array(5)].map((_, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-4 w-24" />
+                                                <Skeleton className="h-3 w-32" />
+                                            </div>
+                                            <div className="flex flex-col items-end space-y-2">
+                                                <Skeleton className="h-4 w-16" />
+                                                <Skeleton className="h-3 w-20" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 ) : data ? (
                     <>

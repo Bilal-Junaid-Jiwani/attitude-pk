@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/connect';
 import Order from '@/lib/models/Order';
-import User from '@/lib/models/User'; // Critical import to ensure Schema is registered
+import User from '@/lib/models/User';
+import BusinessExpense from '@/lib/models/BusinessExpense';
+import Visitor from '@/lib/models/Visitor';
+import Product from '@/lib/models/Product';
 
 // Helper: Calculate percentage change
 const calculateChange = (current: number, previous: number) => {
@@ -12,25 +15,151 @@ const calculateChange = (current: number, previous: number) => {
 // Helper: Get Aggregated Data for a date range
 const getMetrics = async (startDate: Date, endDate: Date) => {
     const validOrdersQuery = {
-        status: { $nin: ['Cancelled', 'Returned'] },
+        status: 'Delivered', // STRICTLY Realized Sales Only
         createdAt: { $gte: startDate, $lte: endDate }
     };
 
     const count = await Order.countDocuments(validOrdersQuery);
 
-    const salesAgg = await Order.aggregate([
+    // 1. Order-Level Metrics (Revenue, Shipping, Tax, Discount)
+    // No $unwind here to avoid duplicating order totals
+    const orderMetricsAgg = await Order.aggregate([
         { $match: validOrdersQuery },
         {
             $group: {
                 _id: null,
-                total: { $sum: { $toDouble: "$totalAmount" } }
+                grossRevenue: { $sum: { $toDouble: "$totalAmount" } },
+                subtotal: { $sum: { $toDouble: "$subtotal" } },
+                shippingCollected: { $sum: { $toDouble: "$shippingCost" } },
+                taxCollected: { $sum: { $toDouble: "$tax" } },
+                discountGiven: { $sum: { $toDouble: "$discount" } }
             }
         }
     ]);
-    const sales = salesAgg.length > 0 ? salesAgg[0].total : 0;
-    const aov = count > 0 ? sales / count : 0;
 
-    return { count, sales, aov };
+    // 2. Item-Level Metrics (COGS, Units Sold)
+    // Unwind + Lookup for Cost
+    const itemMetricsAgg = await Order.aggregate([
+        { $match: validOrdersQuery },
+        { $unwind: "$items" },
+        // Fix: Lookup current product cost if missing in order item (for old orders)
+        {
+            $addFields: {
+                productObjId: {
+                    $convert: {
+                        input: "$items.product_id",
+                        to: "objectId",
+                        onError: null,
+                        onNull: null
+                    }
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "productObjId",
+                foreignField: "_id",
+                as: "productData"
+            }
+        },
+        { $unwind: { path: "$productData", preserveNullAndEmptyArrays: true } },
+        {
+            $addFields: {
+                // Priority: 1. Stored Cost > 0, 2. Current Product Cost, 3. Default 0
+                resolvedCost: {
+                    $cond: {
+                        if: { $gt: [{ $toDouble: "$items.costPerItem" }, 0] },
+                        then: { $toDouble: "$items.costPerItem" },
+                        else: { $ifNull: ["$productData.costPerItem", 0] }
+                    }
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                cogs: { $sum: { $multiply: [{ $toDouble: "$resolvedCost" }, { $toDouble: "$items.quantity" }] } },
+                unitsSold: { $sum: { $toDouble: "$items.quantity" } }
+            }
+        }
+    ]);
+
+    // Shipping breakdown
+    const shippingBreakdown = await Order.aggregate([
+        { $match: validOrdersQuery },
+        {
+            $group: {
+                _id: null,
+                freeShippingOrders: { $sum: { $cond: [{ $eq: [{ $toDouble: "$shippingCost" }, 0] }, 1, 0] } },
+                paidShippingOrders: { $sum: { $cond: [{ $gt: [{ $toDouble: "$shippingCost" }, 0] }, 1, 0] } },
+                totalShippingCollected: { $sum: { $toDouble: "$shippingCost" } }
+            }
+        }
+    ]);
+
+    // Coupon breakdown
+    const couponBreakdown = await Order.aggregate([
+        { $match: { ...validOrdersQuery, couponCode: { $exists: true, $ne: '' } } },
+        {
+            $group: {
+                _id: "$couponCode",
+                usageCount: { $sum: 1 },
+                totalDiscountValue: { $sum: { $toDouble: "$discount" } }
+            }
+        },
+        { $sort: { usageCount: -1 } },
+        { $limit: 5 }
+    ]);
+
+    // Daily Sales History for Chart
+    const salesHistory = await Order.aggregate([
+        { $match: validOrdersQuery },
+        {
+            $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                sales: { $sum: { $toDouble: "$totalAmount" } },
+                orders: { $sum: 1 }
+            }
+        },
+        { $sort: { _id: 1 } }
+    ]);
+
+    const orderMetrics = orderMetricsAgg.length > 0 ? orderMetricsAgg[0] : {
+        grossRevenue: 0, subtotal: 0, shippingCollected: 0, taxCollected: 0, discountGiven: 0
+    };
+
+    const itemMetrics = itemMetricsAgg.length > 0 ? itemMetricsAgg[0] : {
+        cogs: 0, unitsSold: 0
+    };
+
+    const shippingData = shippingBreakdown.length > 0 ? shippingBreakdown[0] : {
+        freeShippingOrders: 0, paidShippingOrders: 0, totalShippingCollected: 0
+    };
+
+    const netRevenue = orderMetrics.grossRevenue - orderMetrics.discountGiven;
+    const grossProfit = netRevenue - itemMetrics.cogs;
+    const grossMargin = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
+    const aov = count > 0 ? orderMetrics.grossRevenue / count : 0;
+
+    return {
+        count,
+        grossRevenue: orderMetrics.grossRevenue,
+        netRevenue,
+        subtotal: orderMetrics.subtotal,
+        shippingCollected: orderMetrics.shippingCollected,
+        taxCollected: orderMetrics.taxCollected,
+        discountGiven: orderMetrics.discountGiven,
+        cogs: itemMetrics.cogs,
+        grossProfit,
+        grossMargin,
+        aov,
+        unitsSold: itemMetrics.unitsSold,
+        freeShippingOrders: shippingData.freeShippingOrders,
+        paidShippingOrders: shippingData.paidShippingOrders,
+        couponUsage: couponBreakdown,
+        salesHistory
+    };
 };
 
 // Helper: Get Status Counts
@@ -109,9 +238,9 @@ export async function GET(req: Request) {
 
         const metrics = {
             totalSales: {
-                value: current.sales,
-                previous: previous.sales,
-                change: calculateChange(current.sales, previous.sales)
+                value: current.grossRevenue,
+                previous: previous.grossRevenue,
+                change: calculateChange(current.grossRevenue, previous.grossRevenue)
             },
             totalOrders: {
                 value: current.count,
@@ -139,6 +268,129 @@ export async function GET(req: Request) {
                 change: calculateChange(currentOps.returned, previousOps.returned)
             }
         };
+
+        // Profit Metrics
+        const profitMetrics = {
+            grossRevenue: current.grossRevenue,
+            netRevenue: current.netRevenue,
+            subtotal: current.subtotal,
+            shippingCollected: current.shippingCollected,
+            taxCollected: current.taxCollected,
+            discountGiven: current.discountGiven,
+            cogs: current.cogs,
+            grossProfit: current.grossProfit,
+            grossMargin: Math.round(current.grossMargin * 10) / 10,
+            unitsSold: current.unitsSold,
+            freeShippingOrders: current.freeShippingOrders,
+            paidShippingOrders: current.paidShippingOrders,
+            couponUsage: current.couponUsage || [],
+            salesHistory: current.salesHistory || [],
+            freeShippingCost: 0, // Will be calculated after expenses fetch
+            totalPackagingCost: 0, // Will be calculated after expenses fetch
+            advertisingCost: 0, // Will be fetched from expenses
+            packagingPerOrder: 0,
+            shippingPerOrder: 0
+        };
+
+        // Return Losses Calculation
+        const returnLossesAgg = await Order.aggregate([
+            {
+                $match: {
+                    status: 'Returned',
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRefunds: { $sum: { $toDouble: "$returnDetails.refundAmount" } },
+                    totalReturnShipping: { $sum: { $toDouble: "$returnDetails.returnShippingCost" } },
+                    returnCount: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const returnLosses = returnLossesAgg.length > 0 ? {
+            totalRefunds: returnLossesAgg[0].totalRefunds || 0,
+            totalReturnShipping: returnLossesAgg[0].totalReturnShipping || 0,
+            returnCount: returnLossesAgg[0].returnCount || 0
+        } : { totalRefunds: 0, totalReturnShipping: 0, returnCount: 0 };
+
+        // Business Expenses (Monthly) - Use endDate month and aggregate all months in range
+        const startMonth = startDate.toISOString().substring(0, 7);
+        const endMonth = endDate.toISOString().substring(0, 7);
+
+        // Get all expense records within the date range
+        const expenseQuery = startMonth === endMonth
+            ? { month: endMonth }
+            : { month: { $gte: startMonth, $lte: endMonth } };
+
+        const expenseDocs = await BusinessExpense.find(expenseQuery).lean() as any[];
+
+        // Aggregate expenses across all months in range
+        const expenses = {
+            advertising: 0, packaging: 0, returnShipping: 0,
+            staffSalary: 0, rent: 0, utilities: 0, other: 0,
+            packagingPerOrder: 0, shippingPerOrder: 0
+        };
+
+        expenseDocs.forEach((doc: any) => {
+            expenses.advertising += Number(doc.advertising || 0);
+            expenses.packaging += Number(doc.packaging || 0);
+            expenses.returnShipping += Number(doc.returnShipping || 0);
+            expenses.staffSalary += Number(doc.staffSalary || 0);
+            expenses.rent += Number(doc.rent || 0);
+            expenses.utilities += Number(doc.utilities || 0);
+            expenses.other += Number(doc.other || 0);
+            // Use last record's per-order rates (most recent)
+            if (doc.packagingPerOrder) expenses.packagingPerOrder = Number(doc.packagingPerOrder);
+            if (doc.shippingPerOrder) expenses.shippingPerOrder = Number(doc.shippingPerOrder);
+        });
+
+        // Calculate free shipping cost (for informational purposes)
+        const freeShippingCost = (current.freeShippingOrders || 0) * expenses.shippingPerOrder;
+
+        // Calculate total packaging cost = (Total Orders - Returned Orders) * packagingPerOrder
+        // (We separate returned packaging cost to add it to Return Loss)
+        const validOrderCount = (current.count || 0) - returnLosses.returnCount;
+        const totalPackagingCost = Math.max(0, validOrderCount) * expenses.packagingPerOrder;
+
+        // Calculate Total Delivery Expense (for ALL valid orders, whether free or paid shipping)
+        const deliveryCost = Math.max(0, validOrderCount) * expenses.shippingPerOrder;
+
+        // Calculate Comprehensive Return Loss
+        // 1. Manual Return Shipping (Courier return charges)
+        // 2. Wasted Forward Shipping (ShippingPerOrder * ReturnCount) - Cost of sending it out
+        // 3. Wasted Packaging (PackagingPerOrder * ReturnCount) - Box/Flyer wasted
+        const wastedForwardShipping = returnLosses.returnCount * expenses.shippingPerOrder;
+        const wastedPackaging = returnLosses.returnCount * expenses.packagingPerOrder;
+
+        // Update totalReturnShipping to be comprehensive
+        returnLosses.totalReturnShipping += wastedForwardShipping + wastedPackaging;
+
+        const totalExpenses = (
+            expenses.advertising +
+            expenses.packaging +
+            expenses.returnShipping +
+            expenses.staffSalary +
+            expenses.rent +
+            expenses.utilities +
+            expenses.other
+        );
+
+        // Update profitMetrics with calculated per-order costs
+        profitMetrics.freeShippingCost = freeShippingCost;
+        profitMetrics.totalPackagingCost = totalPackagingCost;
+        profitMetrics.advertisingCost = expenses.advertising;
+        // @ts-ignore
+        profitMetrics.deliveryCost = deliveryCost;
+        profitMetrics.packagingPerOrder = expenses.packagingPerOrder;
+        profitMetrics.shippingPerOrder = expenses.shippingPerOrder;
+
+        // Net Profit = Gross Profit - Expenses - Return Losses (inclusive) - Delivery Cost (ALL outgoing) - Packaging Cost (valid orders)
+        // Note: we remove freeShippingCost from formula because deliveryCost covers ALL orders.
+        const netProfit = current.grossProfit - totalExpenses - returnLosses.totalReturnShipping - deliveryCost - totalPackagingCost;
+        const netMargin = current.netRevenue > 0 ? (netProfit / current.netRevenue) * 100 : 0;
 
         // 3. History (Daily)
         const dailies = await Order.aggregate([
@@ -231,8 +483,35 @@ export async function GET(req: Request) {
         // 6. Recent Orders
         const recentOrders = await getRecentOrders(startDate, endDate);
 
+        // 7. Active Visitors (Realtime)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const activeVisitors = await Visitor.countDocuments({ lastActive: { $gte: fiveMinutesAgo } });
+
+        // 8. Low Stock Alerts
+        const lowStockProducts = await Product.find({ stock: { $lte: 5 } })
+            .select('name stock price images slug')
+            .limit(5);
+
         return NextResponse.json({
+            activeVisitors,
+            lowStockProducts,
             metrics,
+            profitMetrics: {
+                ...profitMetrics,
+                netProfit,
+                netMargin: Math.round(netMargin * 10) / 10,
+                totalExpenses
+            },
+            returnLosses,
+            expenses: {
+                advertising: Number(expenses.advertising || 0),
+                packaging: Number(expenses.packaging || 0),
+                returnShipping: Number(expenses.returnShipping || 0),
+                staffSalary: Number(expenses.staffSalary || 0),
+                rent: Number(expenses.rent || 0),
+                utilities: Number(expenses.utilities || 0),
+                other: Number(expenses.other || 0)
+            },
             history,
             returningRate,
             topProducts,

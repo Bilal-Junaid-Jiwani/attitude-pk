@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Search } from 'lucide-react';
-import CoolLoader from '@/components/ui/CoolLoader';
 import { useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import ProductCardSkeleton from '@/components/ui/ProductCardSkeleton';
 
 interface Product {
     _id: string;
@@ -18,8 +18,6 @@ interface Product {
     subCategory?: string;
     stock: number;
 }
-
-import { Suspense } from 'react';
 
 function SearchContent() {
     const searchParams = useSearchParams();
@@ -67,7 +65,25 @@ function SearchContent() {
         }
     }, [query]);
 
-    if (loading) return <CoolLoader />;
+    if (loading) {
+        return (
+            <section className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-[#F5F5F7] min-h-screen">
+                <div className="max-w-7xl mx-auto space-y-8">
+                    <div className="flex flex-col items-center justify-center text-center mb-8">
+                        <p className="text-gray-500 mb-2 uppercase tracking-widest text-xs">Search Results</p>
+                        <h1 className="text-3xl font-heading font-bold text-[#1c524f]">
+                            Searching...
+                        </h1>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+                        {[...Array(8)].map((_, i) => (
+                            <ProductCardSkeleton key={i} />
+                        ))}
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="py-16 w-full px-4 sm:px-6 lg:px-12 bg-[#F5F5F7] min-h-screen">
@@ -149,9 +165,14 @@ function SearchContent() {
     );
 }
 
+// Fallback for Suspense - simple loading div as it's just for URL parsing
+function SearchFallback() {
+    return <div className="min-h-screen bg-[#F5F5F7]"></div>;
+}
+
 export default function SearchPage() {
     return (
-        <Suspense fallback={<CoolLoader />}>
+        <Suspense fallback={<SearchFallback />}>
             <SearchContent />
         </Suspense>
     );

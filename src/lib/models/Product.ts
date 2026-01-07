@@ -26,6 +26,18 @@ const ProductSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    costPerItem: {
+        type: Number,
+        default: 0,
+    },
+    sku: {
+        type: String,
+        trim: true,
+    },
+    barcode: {
+        type: String,
+        trim: true,
+    },
     stock: {
         type: Number,
         required: [true, 'Please provide stock number'],
@@ -88,8 +100,10 @@ const ProductSchema = new mongoose.Schema({
         price: Number,
         stock: Number,
         sku: String,
+        barcode: String,
+        costPerItem: Number,
         imageUrl: String,
-        images: [String] // Multiple images for this specific variant
+        images: [String]
     }]
 }, { timestamps: true });
 

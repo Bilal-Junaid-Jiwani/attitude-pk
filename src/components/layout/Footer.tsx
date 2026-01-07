@@ -86,9 +86,9 @@ const Footer = () => {
                     <div>
                         <h3 className="text-sm font-bold text-[#1c524f] tracking-wider uppercase mb-4">Shop</h3>
                         <ul className="space-y-3">
-                            <li><Link href="/baby" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Baby</Link></li>
-                            <li><Link href="/kids" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Kids</Link></li>
-                            <li><Link href="/home" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Home</Link></li>
+                            <li><Link href="/collections/baby" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Baby</Link></li>
+                            <li><Link href="/collections/kids" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Kids</Link></li>
+                            <li><Link href="/" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Home</Link></li>
                             <li><Link href="/trending" className="text-sm text-[#1c524f] hover:text-[#153e3c] transition-colors font-medium">Trending</Link></li>
                         </ul>
                     </div>

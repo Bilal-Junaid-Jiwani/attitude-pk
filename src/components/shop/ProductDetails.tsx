@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Minus, Plus, ChevronDown, Check } from 'lucide-react';
+import { Star, Minus, Plus, ChevronDown, Check, Flame } from 'lucide-react';
 import ReviewsSection from '@/components/shop/ReviewsSection';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -50,6 +50,11 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
     const [subscribeConfig, setSubscribeConfig] = useState<any>(null);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const { addToast } = useToast();
+    const [viewers, setViewers] = useState(0);
+
+    useEffect(() => {
+        setViewers(Math.floor(Math.random() * (15 - 5 + 1)) + 5);
+    }, []);
 
     const { addToCart } = useCart();
 
@@ -158,6 +163,12 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
     // Compute Current Variant based on selection
     // Find in allVariants or fallback to main product if not found
     const currentVariant = allVariants.find(v => {
+        // Prioritize actual variants over main product if they match
+        const isVariant = v._id !== product._id;
+        const fragMatch = !selectedFragrance || (v.fragrance?._id === selectedFragrance);
+        const formatMatch = !selectedFormat || (v.format?._id === selectedFormat);
+        return isVariant && fragMatch && formatMatch;
+    }) || allVariants.find(v => {
         const fragMatch = !selectedFragrance || (v.fragrance?._id === selectedFragrance);
         const formatMatch = !selectedFormat || (v.format?._id === selectedFormat);
         return fragMatch && formatMatch;
@@ -192,20 +203,34 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         if (!product) return;
 
         const isSubscribe = purchaseType === 'subscribe';
-        // Create unique ID for subscription items to prevent merging with one-time purchases
-        const cartItemId = isSubscribe ? `${product._id}-sub` : product._id;
+
+        // Robustly determine actual variant ID from product.variants source
+        // This avoids issues where 'currentVariant' might be the main product wrapper
+        const matchedVariant = product.variants?.find(v =>
+            (v.fragrance?._id === selectedFragrance) &&
+            (v.format?._id === selectedFormat)
+        );
+
+        const finalVariantId = matchedVariant ? matchedVariant._id : undefined;
+
+        // Cart Item ID: Must be unique per variant !!
+        // Use variantId if available, else product._id. Append -sub if subscription.
+        const baseId = finalVariantId || product._id;
+        const cartItemId = isSubscribe ? `${baseId}-sub` : baseId;
 
         addToCart({
             _id: cartItemId,
+            productId: product._id, // Always Main Product ID for API
             name: product.name +
-                (currentVariant?.fragrance ? ` - ${currentVariant.fragrance.name}` : '') +
-                (currentVariant?.format ? ` - ${currentVariant.format.name}` : '') +
+                (matchedVariant?.fragrance ? ` - ${matchedVariant.fragrance.name}` : '') +
+                (matchedVariant?.format ? ` - ${matchedVariant.format.name}` : '') +
                 (isSubscribe ? ' (Subscribe & Save)' : ''),
             price: currentPrice,
             originalPrice: isSubscribe ? displayPrice : undefined, // Track original price for stats
             imageUrl: activeImage,
             quantity: quantity,
-            subCategory: product.subCategory
+            subCategory: product.subCategory,
+            variantId: finalVariantId
         });
 
         addToast(isSubscribe ? 'Added subscription to cart' : 'Added to cart', 'success');
@@ -295,6 +320,12 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                                         Rs. {product.compareAtPrice!.toLocaleString()}
                                     </span>
                                 )}
+                            </div>
+
+                            {/* Urgency */}
+                            <div className="flex items-center gap-2 text-rose-600 text-sm font-bold mt-3 bg-rose-50 w-fit px-3 py-1 rounded-full animate-pulse border border-rose-100">
+                                <Flame size={16} fill="currentColor" />
+                                <span>{viewers} people are viewing this right now</span>
                             </div>
 
                             {/* Stars */}
